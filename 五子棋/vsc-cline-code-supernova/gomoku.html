@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>五子棋遊戲 - 人機對戰</title>
+        <style>
+            body {
+                font-family: 'Microsoft JhengHei', Arial, sans-serif;
+                text-align: center;
+                background-color: #f5f5dc;
+                margin: 0;
+                padding: 20px;
+            }
+
+            .game-container {
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #fff;
+                border-radius: 10px;
+                padding: 20px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            h1 {
+                color: #333;
+                margin-bottom: 20px;
+            }
+
+            .game-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 20px;
+                font-size: 18px;
+                font-weight: bold;
+            }
+
+            .player {
+                color: #000;
+            }
+
+            .ai {
+                color: #fff;
+                background-color: #000;
+                padding: 5px 10px;
+                border-radius: 5px;
+            }
+
+            .board {
+                display: grid;
+                grid-template-columns: repeat(15, 1fr);
+                grid-template-rows: repeat(15, 1fr);
+                width: 450px;
+                height: 450px;
+                margin: 0 auto;
+                background-color: #ddb;
+                border: 2px solid #aa8;
+                border-radius: 5px;
+            }
+
+            .cell {
+                background-color: #ddb;
+                border: 1px solid #aa8;
+                position: relative;
+                cursor: pointer;
+            }
+
+            .cell:hover {
+                background-color: #cc9;
+            }
+
+            .piece {
+                width: 80%;
+                height: 80%;
+                border-radius: 50%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                border: 2px solid #333;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            }
+
+            .piece.black {
+                background-color: #000;
+            }
+
+            .piece.white {
+                background-color: #fff;
+            }
+
+            .controls {
+                margin-top: 20px;
+            }
+
+            button {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                font-size: 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 0 10px;
+            }
+
+            button:hover {
+                background-color: #45a049;
+            }
+
+            .reset-btn {
+                background-color: #f44336;
+            }
+
+            .reset-btn:hover {
+                background-color: #da190b;
+            }
+
+            .message {
+                margin-top: 20px;
+                font-size: 20px;
+                font-weight: bold;
+                color: #333;
+                min-height: 30px;
+            }
+
+            .winner {
+                color: #4CAF50;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="game-container">
+            <h1>五子棋遊戲</h1>
+
+            <div class="game-info">
+                <div class="player">玩家: 黑棋</div>
+                <div class="ai">AI: 白棋</div>
+            </div>
+
+            <div class="board" id="board"></div>
+
+            <div class="controls">
+                <button onclick="resetGame()">重新開始</button>
+            </div>
+
+            <div class="message" id="message"></div>
+        </div>
+
+        <script>
+            class GomokuGame {
+                constructor() {
+                    this.boardSize = 15;
+                    this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                    this.currentPlayer = 1; // 1: 玩家(黑), 2: AI(白)
+                    this.gameOver = false;
+                    this.boardElement = document.getElementById('board');
+                    this.messageElement = document.getElementById('message');
+
+                    this.init();
+                }
+
+                init() {
+                    this.createBoard();
+                    this.updateMessage('輪到玩家下棋');
+                }
+
+                createBoard() {
+                    this.boardElement.innerHTML = '';
+                    for (let i = 0; i < this.boardSize; i++) {
+                        for (let j = 0; j < this.boardSize; j++) {
+                            const cell = document.createElement('div');
+                            cell.className = 'cell';
+                            cell.dataset.row = i;
+                            cell.dataset.col = j;
+                            cell.addEventListener('click', () => this.makeMove(i, j));
+                            this.boardElement.appendChild(cell);
+                        }
+                    }
+                }
+
+                makeMove(row, col) {
+                    if (this.board[row][col] !== 0 || this.gameOver || this.currentPlayer !== 1) {
+                        return;
+                    }
+
+                    this.placePiece(row, col, 1);
+                    if (this.checkWin(row, col, 1)) {
+                        this.endGame(1);
+                        return;
+                    }
+
+                    this.currentPlayer = 2;
+                    this.updateMessage('AI思考中...');
+
+                    setTimeout(() => {
+                        this.aiMove();
+                    }, 500);
+                }
+
+                aiMove() {
+                    if (this.gameOver) return;
+
+                    const move = this.getBestMove();
+                    if (move) {
+                        this.placePiece(move.row, move.col, 2);
+                        if (this.checkWin(move.row, move.col, 2)) {
+                            this.endGame(2);
+                            return;
+                        }
+                    }
+
+                    this.currentPlayer = 1;
+                    this.updateMessage('輪到玩家下棋');
+                }
+
+                getBestMove() {
+                    // 簡單的AI邏輯：優先考慮中心位置和威脅位置
+                    const availableMoves = [];
+
+                    // 檢查是否有立即獲勝的機會
+                    for (let i = 0; i < this.boardSize; i++) {
+                        for (let j = 0; j < this.boardSize; j++) {
+                            if (this.board[i][j] === 0) {
+                                if (this.wouldWin(i, j, 2)) {
+                                    return { row: i, col: j };
+                                }
+                                if (this.wouldWin(i, j, 1)) {
+                                    return { row: i, col: j }; // 阻擋玩家的獲勝
+                                }
+                                availableMoves.push({ row: i, col: j });
+                            }
+                        }
+                    }
+
+                    // 如果沒有立即的威脅，選擇最佳位置
+                    if (availableMoves.length > 0) {
+                        return this.getStrategicMove(availableMoves);
+                    }
+
+                    return null;
+                }
+
+                getStrategicMove(availableMoves) {
+                    const center = Math.floor(this.boardSize / 2);
+                    let bestMove = availableMoves[0];
+
+                    // 評估每個位置的價值
+                    let bestScore = -1;
+                    for (const move of availableMoves) {
+                        let score = this.evaluatePosition(move.row, move.col);
+
+                        // 靠近中心的加分
+                        const distanceFromCenter = Math.abs(move.row - center) + Math.abs(move.col - center);
+                        score += (this.boardSize - distanceFromCenter) * 2;
+
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = move;
+                        }
+                    }
+
+                    return bestMove;
+                }
+
+                evaluatePosition(row, col) {
+                    let score = 0;
+
+                    // 檢查周圍是否有棋子
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            if (i === 0 && j === 0) continue;
+                            const newRow = row + i;
+                            const newCol = col + j;
+                            if (newRow >= 0 && newRow < this.boardSize && newCol >= 0 && newCol < this.boardSize) {
+                                if (this.board[newRow][newCol] !== 0) {
+                                    score += 3; // 周圍有棋子加分
+                                }
+                            }
+                        }
+                    }
+
+                    return score;
+                }
+
+                wouldWin(row, col, player) {
+                    this.board[row][col] = player;
+                    const win = this.checkWin(row, col, player);
+                    this.board[row][col] = 0;
+                    return win;
+                }
+
+                placePiece(row, col, player) {
+                    this.board[row][col] = player;
+                    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                    const piece = document.createElement('div');
+                    piece.className = `piece ${player === 1 ? 'black' : 'white'}`;
+                    cell.appendChild(piece);
+                }
+
+                checkWin(row, col, player) {
+                    // 檢查水平
+                    if (this.checkDirection(row, col, 0, 1, player)) return true;
+                    // 檢查垂直
+                    if (this.checkDirection(row, col, 1, 0, player)) return true;
+                    // 檢查對角線 (左上到右下)
+                    if (this.checkDirection(row, col, 1, 1, player)) return true;
+                    // 檢查對角線 (右上到左下)
+                    if (this.checkDirection(row, col, 1, -1, player)) return true;
+
+                    return false;
+                }
+
+                checkDirection(row, col, deltaRow, deltaCol, player) {
+                    let count = 1;
+
+                    // 向一個方向檢查
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row + deltaRow * i;
+                        const newCol = col + deltaCol * i;
+                        if (newRow >= 0 && newRow < this.boardSize && newCol >= 0 && newCol < this.boardSize) {
+                            if (this.board[newRow][newCol] === player) {
+                                count++;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // 向相反方向檢查
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row - deltaRow * i;
+                        const newCol = col - deltaCol * i;
+                        if (newRow >= 0 && newRow < this.boardSize && newCol >= 0 && newCol < this.boardSize) {
+                            if (this.board[newRow][newCol] === player) {
+                                count++;
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+
+                    return count >= 5;
+                }
+
+                endGame(winner) {
+                    this.gameOver = true;
+                    if (winner === 1) {
+                        this.updateMessage('恭喜！玩家獲勝！', 'winner');
+                    } else {
+                        this.updateMessage('AI獲勝！', 'winner');
+                    }
+                }
+
+                updateMessage(text, className = '') {
+                    this.messageElement.textContent = text;
+                    this.messageElement.className = `message ${className}`;
+                }
+
+                resetGame() {
+                    this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                    this.currentPlayer = 1;
+                    this.gameOver = false;
+                    this.createBoard();
+                    this.updateMessage('輪到玩家下棋');
+                }
+            }
+
+            // 啟動遊戲
+            const game = new GomokuGame();
+        </script>
+    </body>
+
+</html>

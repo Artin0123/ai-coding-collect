@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A* Pathfinding Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(25, 20px);
+            grid-template-rows: repeat(25, 20px);
+            gap: 0;
+            border: 2px solid #333;
+            background-color: #fff;
+        }
+
+        .cell {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            background-color: #fdfdfd;
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+
+        .cell.start {
+            background-color: #2ecc71;
+        }
+
+        .cell.end {
+            background-color: #e74c3c;
+        }
+
+        .cell.wall {
+            background-color: #34495e;
+        }
+
+        .cell.open {
+            background-color: #aed6f1;
+        }
+
+        .cell.closed {
+            background-color: #f5cba7;
+        }
+
+        .cell.path {
+            background-color: #f1c40f;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>A* Pathfinding Visualizer</h1>
+        <div class="grid-container" id="grid"></div>
+        <div class="controls">
+            <button id="findPathBtn">開始尋路 (Find Path)</button>
+            <button id="resetBtn">重設 (Reset)</button>
+        </div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        class AStarVisualizer {
+            constructor() {
+                this.grid = [];
+                this.rows = 25;
+                this.cols = 25;
+                this.startNode = null;
+                this.endNode = null;
+                this.isMouseDown = false;
+                this.setupPhase = 0; // 0: set start, 1: set end, 2: draw walls
+                this.isRunning = false;
+                
+                this.init();
+            }
+
+            init() {
+                this.createGrid();
+                this.attachEventListeners();
+            }
+
+            createGrid() {
+                const gridContainer = document.getElementById('grid');
+                gridContainer.innerHTML = '';
+                this.grid = [];
+
+                for (let row = 0; row < this.rows; row++) {
+                    this.grid[row] = [];
+                    for (let col = 0; col < this.cols; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        gridContainer.appendChild(cell);
+
+                        this.grid[row][col] = {
+                            element: cell,
+                            row: row,
+                            col: col,
+                            isWall: false,
+                            isStart: false,
+                            isEnd: false,
+                            gCost: Infinity,
+                            hCost: Infinity,
+                            fCost: Infinity,
+                            parent: null
+                        };
+                    }
+                }
+            }
+
+            attachEventListeners() {
+                const gridContainer = document.getElementById('grid');
+                
+                gridContainer.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('cell')) {
+                        this.isMouseDown = true;
+                        this.handleCellClick(e.target);
+                    }
+                });
+
+                gridContainer.addEventListener('mouseover', (e) => {
+                    if (this.isMouseDown && e.target.classList.contains('cell')) {
+                        this.handleCellDrag(e.target);
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    this.isMouseDown = false;
+                });
+
+                document.getElementById('findPathBtn').addEventListener('click', () => {
+                    this.findPath();
+                });
+
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.reset();
+                });
+            }
+
+            handleCellClick(cell) {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const node = this.grid[row][col];
+
+                if (this.setupPhase === 0) {
+                    // Set start node
+                    if (this.startNode) {
+                        this.startNode.isStart = false;
+                        this.startNode.element.classList.remove('start');
+                    }
+                    node.isStart = true;
+                    node.element.classList.add('start');
+                    this.startNode = node;
+                    this.setupPhase = 1;
+                    this.updateStatus('請點擊設置終點');
+                } else if (this.setupPhase === 1) {
+                    // Set end node
+                    if (node.isStart) return; // Can't set end on start
+                    if (this.endNode) {
+                        this.endNode.isEnd = false;
+                        this.endNode.element.classList.remove('end');
+                    }
+                    node.isEnd = true;
+                    node.element.classList.add('end');
+                    this.endNode = node;
+                    this.setupPhase = 2;
+                    this.updateStatus('按住滑鼠左鍵拖曳繪製障礙物');
+                }
+            }
+
+            handleCellDrag(cell) {
+                if (this.setupPhase !== 2 || this.isRunning) return;
+                
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const node = this.grid[row][col];
+
+                // Don't draw walls on start or end nodes
+                if (node.isStart || node.isEnd) return;
+
+                if (!node.isWall) {
+                    node.isWall = true;
+                    node.element.classList.add('wall');
+                }
+            }
+
+            manhattanDistance(nodeA, nodeB) {
+                return Math.abs(nodeA.row - nodeB.row) + Math.abs(nodeA.col - nodeB.col);
+            }
+
+            getNeighbors(node) {
+                const neighbors = [];
+                const directions = [
+                    [-1, 0], [1, 0], [0, -1], [0, 1] // Up, Down, Left, Right
+                ];
+
+                for (const [dRow, dCol] of directions) {
+                    const newRow = node.row + dRow;
+                    const newCol = node.col + dCol;
+
+                    if (newRow >= 0 && newRow < this.rows && newCol >= 0 && newCol < this.cols) {
+                        const neighbor = this.grid[newRow][newCol];
+                        if (!neighbor.isWall) {
+                            neighbors.push(neighbor);
+                        }
+                    }
+                }
+
+                return neighbors;
+            }
+
+            async findPath() {
+                if (!this.startNode || !this.endNode) {
+                    this.updateStatus('請先設置起點和終點');
+                    return;
+                }
+
+                if (this.isRunning) return;
+
+                this.isRunning = true;
+                document.getElementById('findPathBtn').disabled = true;
+                this.updateStatus('正在尋找路徑...');
+
+                // Clear previous path and visualizations
+                this.clearPath();
+
+                // Initialize A* algorithm
+                const openSet = [this.startNode];
+                const closedSet = [];
+
+                this.startNode.gCost = 0;
+                this.startNode.hCost = this.manhattanDistance(this.startNode, this.endNode);
+                this.startNode.fCost = this.startNode.gCost + this.startNode.hCost;
+
+                while (openSet.length > 0) {
+                    // Find node with lowest fCost
+                    let currentNode = openSet[0];
+                    let currentIndex = 0;
+
+                    for (let i = 1; i < openSet.length; i++) {
+                        if (openSet[i].fCost < currentNode.fCost) {
+                            currentNode = openSet[i];
+                            currentIndex = i;
+                        }
+                    }
+
+                    // Move current node from open to closed set
+                    openSet.splice(currentIndex, 1);
+                    closedSet.push(currentNode);
+
+                    // Visualize current state
+                    this.visualizeNode(currentNode, 'closed');
+                    await this.sleep(10);
+
+                    // Check if we reached the end
+                    if (currentNode === this.endNode) {
+                        await this.reconstructPath(currentNode);
+                        this.updateStatus('找到路徑！');
+                        this.isRunning = false;
+                        document.getElementById('findPathBtn').disabled = false;
+                        return;
+                    }
+
+                    // Check neighbors
+                    const neighbors = this.getNeighbors(currentNode);
+
+                    for (const neighbor of neighbors) {
+                        if (closedSet.includes(neighbor)) continue;
+
+                        const tentativeGCost = currentNode.gCost + 1;
+
+                        if (!openSet.includes(neighbor)) {
+                            openSet.push(neighbor);
+                            this.visualizeNode(neighbor, 'open');
+                        } else if (tentativeGCost >= neighbor.gCost) {
+                            continue;
+                        }
+
+                        neighbor.parent = currentNode;
+                        neighbor.gCost = tentativeGCost;
+                        neighbor.hCost = this.manhattanDistance(neighbor, this.endNode);
+                        neighbor.fCost = neighbor.gCost + neighbor.hCost;
+                    }
+
+                    await this.sleep(10);
+                }
+
+                // No path found
+                this.updateStatus('無法找到路徑');
+                this.isRunning = false;
+                document.getElementById('findPathBtn').disabled = false;
+            }
+
+            visualizeNode(node, type) {
+                if (node.isStart || node.isEnd) return;
+                
+                node.element.classList.remove('open', 'closed', 'path', 'wall');
+                node.element.classList.add(type);
+            }
+
+            async reconstructPath(endNode) {
+                const path = [];
+                let currentNode = endNode;
+
+                while (currentNode !== null) {
+                    path.unshift(currentNode);
+                    currentNode = currentNode.parent;
+                }
+
+                // Animate path visualization
+                for (let i = 0; i < path.length; i++) {
+                    const node = path[i];
+                    if (!node.isStart && !node.isEnd) {
+                        this.visualizeNode(node, 'path');
+                        await this.sleep(50);
+                    }
+                }
+            }
+
+            clearPath() {
+                for (let row = 0; row < this.rows; row++) {
+                    for (let col = 0; col < this.cols; col++) {
+                        const node = this.grid[row][col];
+                        if (!node.isWall && !node.isStart && !node.isEnd) {
+                            node.element.classList.remove('open', 'closed', 'path');
+                        }
+                        node.gCost = Infinity;
+                        node.hCost = Infinity;
+                        node.fCost = Infinity;
+                        node.parent = null;
+                    }
+                }
+            }
+
+            reset() {
+                this.isRunning = false;
+                this.setupPhase = 0;
+                this.startNode = null;
+                this.endNode = null;
+                document.getElementById('findPathBtn').disabled = false;
+                this.updateStatus('請點擊設置起點');
+                this.createGrid();
+            }
+
+            updateStatus(message) {
+                document.getElementById('status').textContent = message;
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize the visualizer when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AStarVisualizer();
+        });
+    </script>
+</body>
+</html>

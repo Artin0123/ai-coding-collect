@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gomoku</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            border: 2px solid #333;
+            background-color: #d2b48c;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #aaa;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .piece {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .black {
+            background-color: black;
+        }
+        .white {
+            background-color: white;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="board"></div>
+        <div id="status">Your turn (Black)</div>
+    </div>
+    <script>
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        const boardSize = 15;
+        const board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+        let currentPlayer = 'black';
+        let gameOver = false;
+
+        function drawBoard() {
+            boardElement.innerHTML = '';
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.addEventListener('click', handleCellClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(event) {
+            if (gameOver || currentPlayer !== 'black') return;
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+
+            if (board[row][col] === null) {
+                placePiece(row, col, 'black');
+                if (checkWin(row, col, 'black')) {
+                    endGame('You win!');
+                } else {
+                    currentPlayer = 'white';
+                    statusElement.textContent = "Computer's turn (White)";
+                    setTimeout(computerMove, 500);
+                }
+            }
+        }
+
+        function placePiece(row, col, player) {
+            board[row][col] = player;
+            const piece = document.createElement('div');
+            piece.classList.add('piece', player);
+            const cell = document.querySelector(`[data-row='${row}'][data-col='${col}']`);
+            cell.appendChild(piece);
+        }
+
+        function computerMove() {
+            if (gameOver) return;
+            let bestMove = findBestMove();
+            if (bestMove) {
+                placePiece(bestMove.row, bestMove.col, 'white');
+                if (checkWin(bestMove.row, bestMove.col, 'white')) {
+                    endGame('Computer wins!');
+                } else {
+                    currentPlayer = 'black';
+                    statusElement.textContent = 'Your turn (Black)';
+                }
+            }
+        }
+
+        function findBestMove() {
+            // Offensive moves
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (board[row][col] === null) {
+                        if (isWinningMove(row, col, 'white')) {
+                            return { row, col };
+                        }
+                    }
+                }
+            }
+
+            // Defensive moves
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (board[row][col] === null) {
+                        if (isWinningMove(row, col, 'black')) {
+                            return { row, col };
+                        }
+                    }
+                }
+            }
+
+            // Fallback to a random move
+            let emptyCells = [];
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (board[row][col] === null) {
+                        emptyCells.push({ row, col });
+                    }
+                }
+            }
+
+            if (emptyCells.length > 0) {
+                const randomIndex = Math.floor(Math.random() * emptyCells.length);
+                return emptyCells[randomIndex];
+            }
+
+            return null;
+        }
+
+        function isWinningMove(row, col, player) {
+            board[row][col] = player;
+            const won = checkWin(row, col, player);
+            board[row][col] = null;
+            return won;
+        }
+
+        function checkWin(row, col, player) {
+            return (
+                checkDirection(row, col, player, 1, 0) || // Horizontal
+                checkDirection(row, col, player, 0, 1) || // Vertical
+                checkDirection(row, col, player, 1, 1) || // Diagonal \
+                checkDirection(row, col, player, 1, -1)   // Diagonal /
+            );
+        }
+
+        function checkDirection(row, col, player, dRow, dCol) {
+            let count = 1;
+            for (let i = 1; i < 5; i++) {
+                const r = row + i * dRow;
+                const c = col + i * dCol;
+                if (r >= 0 && r < boardSize && c >= 0 && c < boardSize && board[r][c] === player) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            for (let i = 1; i < 5; i++) {
+                const r = row - i * dRow;
+                const c = col - i * dCol;
+                if (r >= 0 && r < boardSize && c >= 0 && c < boardSize && board[r][c] === player) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            return count >= 5;
+        }
+
+        function endGame(message) {
+            gameOver = true;
+            statusElement.textContent = message;
+        }
+
+        drawBoard();
+    </script>
+</body>
+</html>

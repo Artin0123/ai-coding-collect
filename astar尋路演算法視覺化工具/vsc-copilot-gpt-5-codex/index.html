@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>A* Pathfinding Visualizer</title>
+        <style>
+            :root {
+                color-scheme: light;
+                font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #eef2f4;
+                color: #2c3e50;
+            }
+
+            #app {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+                text-align: center;
+            }
+
+            h1 {
+                margin: 0;
+                font-size: 2rem;
+                letter-spacing: 0.03em;
+            }
+
+            #grid {
+                display: grid;
+                grid-template-columns: repeat(25, 20px);
+                grid-template-rows: repeat(25, 20px);
+                user-select: none;
+            }
+
+            .cell {
+                width: 20px;
+                height: 20px;
+                border: 1px solid #ccc;
+                background-color: #fdfdfd;
+                transition: background-color 0.15s ease;
+            }
+
+            .cell.start {
+                background-color: #2ecc71 !important;
+            }
+
+            .cell.end {
+                background-color: #e74c3c !important;
+            }
+
+            .cell.wall {
+                background-color: #34495e !important;
+            }
+
+            .cell.open {
+                background-color: #aed6f1;
+            }
+
+            .cell.closed {
+                background-color: #f5cba7;
+            }
+
+            .cell.path {
+                background-color: #f1c40f;
+            }
+
+            #instructions {
+                max-width: 540px;
+                font-size: 0.95rem;
+                line-height: 1.5;
+            }
+
+            #controls {
+                display: flex;
+                gap: 10px;
+            }
+
+            button {
+                background-color: #3498db;
+                color: #ffffff;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: transform 0.1s ease, box-shadow 0.1s ease;
+            }
+
+            button:hover:not(:disabled) {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+            }
+
+            button:disabled {
+                background-color: #95a5a6;
+                cursor: not-allowed;
+                box-shadow: none;
+                transform: none;
+            }
+
+            #status {
+                min-height: 1.4em;
+                font-weight: 600;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="app">
+            <h1>A* Pathfinding Visualizer</h1>
+            <p id="instructions">依序點擊網格設定起點與終點，之後按住滑鼠左鍵拖曳以繪製障礙物。設定完成後，點選「開始尋路」觀察 A* 演算法逐步尋找最短路徑的過程。</p>
+            <div id="grid" aria-label="Pathfinding grid"></div>
+            <div id="controls">
+                <button id="findButton">開始尋路 (Find Path)</button>
+                <button id="resetButton">重設 (Reset)</button>
+            </div>
+            <div id="status" role="status" aria-live="polite"></div>
+        </div>
+        <script>
+            (() => {
+                const ROWS = 25;
+                const COLS = 25;
+
+                const gridElement = document.getElementById('grid');
+                const findButton = document.getElementById('findButton');
+                const resetButton = document.getElementById('resetButton');
+                const statusElement = document.getElementById('status');
+
+                const state = {
+                    grid: [],
+                    startNode: null,
+                    endNode: null,
+                    placementPhase: 0,
+                    isMouseDown: false,
+                    isRunning: false,
+                    searchToken: 0,
+                    currentTimeout: null
+                };
+
+                buildGrid();
+                document.addEventListener('mouseup', () => {
+                    state.isMouseDown = false;
+                });
+
+                findButton.addEventListener('click', () => {
+                    if (!state.startNode || !state.endNode) {
+                        setStatus('請先設定起點與終點。');
+                        return;
+                    }
+                    if (state.isRunning) {
+                        return;
+                    }
+                    runAStar();
+                });
+
+                resetButton.addEventListener('click', resetGrid);
+
+                function buildGrid() {
+                    for (let row = 0; row < ROWS; row++) {
+                        const rowArray = [];
+                        for (let col = 0; col < COLS; col++) {
+                            const cell = document.createElement('div');
+                            cell.className = 'cell';
+                            cell.dataset.row = String(row);
+                            cell.dataset.col = String(col);
+                            cell.addEventListener('mousedown', handleCellMouseDown);
+                            cell.addEventListener('mouseenter', handleCellMouseEnter);
+                            gridElement.appendChild(cell);
+
+                            rowArray.push(createNode(row, col, cell));
+                        }
+                        state.grid.push(rowArray);
+                    }
+                }
+
+                function createNode(row, col, element) {
+                    return {
+                        row,
+                        col,
+                        element,
+                        isWall: false,
+                        g: Infinity,
+                        h: 0,
+                        f: Infinity,
+                        previous: null
+                    };
+                }
+
+                function handleCellMouseDown(event) {
+                    if (event.button !== 0) return;
+                    event.preventDefault();
+
+                    if (state.isRunning) return;
+
+                    const node = getNodeFromElement(event.target);
+                    if (!node) return;
+
+                    if (state.placementPhase === 0) {
+                        assignStart(node);
+                        state.placementPhase = 1;
+                    } else if (state.placementPhase === 1) {
+                        if (node === state.startNode) return;
+                        assignEnd(node);
+                        state.placementPhase = 2;
+                    } else {
+                        paintWall(node);
+                    }
+
+                    state.isMouseDown = true;
+                }
+
+                function handleCellMouseEnter(event) {
+                    if (!state.isMouseDown || state.placementPhase < 2 || state.isRunning) return;
+                    const node = getNodeFromElement(event.target);
+                    if (!node) return;
+                    paintWall(node);
+                }
+
+                function getNodeFromElement(element) {
+                    const row = Number(element.dataset.row);
+                    const col = Number(element.dataset.col);
+                    if (Number.isInteger(row) && Number.isInteger(col)) {
+                        return state.grid[row][col];
+                    }
+                    return null;
+                }
+
+                function assignStart(node) {
+                    clearStatus();
+                    if (state.startNode) {
+                        state.startNode.element.classList.remove('start');
+                    }
+                    node.isWall = false;
+                    node.element.classList.remove('wall', 'open', 'closed', 'path');
+                    node.element.classList.add('start');
+                    state.startNode = node;
+                }
+
+                function assignEnd(node) {
+                    clearStatus();
+                    if (state.endNode) {
+                        state.endNode.element.classList.remove('end');
+                    }
+                    node.isWall = false;
+                    node.element.classList.remove('wall', 'open', 'closed', 'path');
+                    node.element.classList.add('end');
+                    state.endNode = node;
+                }
+
+                function paintWall(node) {
+                    if (node === state.startNode || node === state.endNode || node.isWall) return;
+                    node.isWall = true;
+                    node.element.classList.remove('open', 'closed', 'path');
+                    node.element.classList.add('wall');
+                }
+
+                function runAStar() {
+                    state.isRunning = true;
+                    findButton.disabled = true;
+                    clearStatus();
+                    setStatus('尋路中...');
+                    state.searchToken += 1;
+                    const runId = state.searchToken;
+
+                    if (state.currentTimeout) {
+                        clearTimeout(state.currentTimeout);
+                        state.currentTimeout = null;
+                    }
+
+                    clearSearchState();
+
+                    const openSet = [];
+                    const closedSet = new Set();
+
+                    state.startNode.g = 0;
+                    state.startNode.h = manhattan(state.startNode, state.endNode);
+                    state.startNode.f = state.startNode.h;
+                    openSet.push(state.startNode);
+
+                    const step = () => {
+                        if (runId !== state.searchToken) return;
+
+                        if (openSet.length === 0) {
+                            finishNoPath();
+                            return;
+                        }
+
+                        const currentIndex = lowestFIndex(openSet);
+                        const current = openSet.splice(currentIndex, 1)[0];
+
+                        if (current !== state.startNode && current !== state.endNode) {
+                            current.element.classList.remove('open');
+                            current.element.classList.add('closed');
+                        }
+
+                        if (current === state.endNode) {
+                            reconstructPath(current);
+                            finishSuccess();
+                            return;
+                        }
+
+                        closedSet.add(current);
+
+                        const neighbors = getNeighbors(current);
+                        for (const neighbor of neighbors) {
+                            if (neighbor.isWall || closedSet.has(neighbor)) {
+                                continue;
+                            }
+
+                            const tentativeG = current.g + 1;
+                            const inOpenSet = openSet.includes(neighbor);
+
+                            if (!inOpenSet || tentativeG < neighbor.g) {
+                                neighbor.previous = current;
+                                neighbor.g = tentativeG;
+                                neighbor.h = manhattan(neighbor, state.endNode);
+                                neighbor.f = neighbor.g + neighbor.h;
+
+                                if (!inOpenSet) {
+                                    openSet.push(neighbor);
+                                    if (neighbor !== state.endNode) {
+                                        neighbor.element.classList.remove('closed', 'path');
+                                        neighbor.element.classList.add('open');
+                                    }
+                                }
+                            }
+                        }
+
+                        state.currentTimeout = setTimeout(step, 10);
+                    };
+
+                    step();
+                }
+
+                function clearSearchState() {
+                    for (const row of state.grid) {
+                        for (const node of row) {
+                            node.g = Infinity;
+                            node.h = 0;
+                            node.f = Infinity;
+                            node.previous = null;
+                            if (
+                                node !== state.startNode &&
+                                node !== state.endNode &&
+                                !node.isWall
+                            ) {
+                                node.element.classList.remove('open', 'closed', 'path');
+                                node.element.classList.add('cell');
+                            } else {
+                                node.element.classList.remove('open', 'closed', 'path');
+                            }
+                        }
+                    }
+                }
+
+                function getNeighbors(node) {
+                    const neighbors = [];
+                    const { row, col } = node;
+                    if (row > 0) neighbors.push(state.grid[row - 1][col]);
+                    if (row < ROWS - 1) neighbors.push(state.grid[row + 1][col]);
+                    if (col > 0) neighbors.push(state.grid[row][col - 1]);
+                    if (col < COLS - 1) neighbors.push(state.grid[row][col + 1]);
+                    return neighbors;
+                }
+
+                function manhattan(a, b) {
+                    return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+                }
+
+                function lowestFIndex(openSet) {
+                    let bestIndex = 0;
+                    for (let i = 1; i < openSet.length; i++) {
+                        const node = openSet[i];
+                        const bestNode = openSet[bestIndex];
+                        if (node.f < bestNode.f || (node.f === bestNode.f && node.h < bestNode.h)) {
+                            bestIndex = i;
+                        }
+                    }
+                    return bestIndex;
+                }
+
+                function reconstructPath(endNode) {
+                    const path = [];
+                    let current = endNode;
+                    while (current) {
+                        path.push(current);
+                        current = current.previous;
+                    }
+                    path.reverse();
+
+                    for (const node of path) {
+                        if (node === state.startNode || node === state.endNode) {
+                            continue;
+                        }
+                        node.element.classList.remove('open', 'closed');
+                        node.element.classList.add('path');
+                    }
+                }
+
+                function finishSuccess() {
+                    state.isRunning = false;
+                    findButton.disabled = false;
+                    setStatus('成功找到路徑！');
+                }
+
+                function finishNoPath() {
+                    state.isRunning = false;
+                    findButton.disabled = false;
+                    setStatus('無法到達終點。');
+                }
+
+                function setStatus(message) {
+                    statusElement.textContent = message;
+                }
+
+                function clearStatus() {
+                    statusElement.textContent = '';
+                }
+
+                function resetGrid() {
+                    if (state.currentTimeout) {
+                        clearTimeout(state.currentTimeout);
+                        state.currentTimeout = null;
+                    }
+                    state.searchToken += 1;
+                    state.isRunning = false;
+                    state.placementPhase = 0;
+                    state.startNode = null;
+                    state.endNode = null;
+                    findButton.disabled = false;
+                    clearStatus();
+
+                    for (const row of state.grid) {
+                        for (const node of row) {
+                            node.isWall = false;
+                            node.g = Infinity;
+                            node.h = 0;
+                            node.f = Infinity;
+                            node.previous = null;
+                            node.element.className = 'cell';
+                        }
+                    }
+                }
+            })();
+        </script>
+    </body>
+
+</html>

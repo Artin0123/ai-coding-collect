@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋遊戲 - 人機對戰</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            color: #555;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            border: 2px solid #8B4513;
+            background: #DEB887;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cell:hover {
+            background: rgba(139, 69, 19, 0.2);
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: #8B4513;
+            top: 50%;
+            left: 0;
+        }
+
+        .cell::after {
+            content: '';
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: #8B4513;
+            left: 50%;
+            top: 0;
+        }
+
+        .piece {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            z-index: 10;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+        }
+
+        .white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .status {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f0f0f0;
+        }
+
+        .win {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .lose {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎯 五子棋遊戲</h1>
+        <div class="game-info">
+            <p>您執黑棋先手，AI執白棋</p>
+        </div>
+        
+        <div class="status" id="status">輪到您下棋</div>
+        
+        <div class="board" id="board"></div>
+        
+        <div class="controls">
+            <button onclick="resetGame()">重新開始</button>
+            <button onclick="undoMove()">悔棋</button>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 15;
+        const EMPTY = 0;
+        const BLACK = 1;
+        const WHITE = 2;
+        
+        let board = [];
+        let currentPlayer = BLACK;
+        let gameOver = false;
+        let moveHistory = [];
+
+        function initBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            
+            board = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                board[i] = [];
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    board[i][j] = EMPTY;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.onclick = () => makeMove(i, j);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function makeMove(row, col) {
+            if (gameOver || currentPlayer !== BLACK || board[row][col] !== EMPTY) {
+                return;
+            }
+            
+            placePiece(row, col, BLACK);
+            moveHistory.push({row, col, player: BLACK});
+            
+            if (checkWin(row, col, BLACK)) {
+                document.getElementById('status').textContent = '恭喜！您贏了！';
+                document.getElementById('status').className = 'status win';
+                gameOver = true;
+                return;
+            }
+            
+            if (isBoardFull()) {
+                document.getElementById('status').textContent = '平局！';
+                gameOver = true;
+                return;
+            }
+            
+            currentPlayer = WHITE;
+            document.getElementById('status').textContent = 'AI思考中...';
+            
+            setTimeout(() => {
+                aiMove();
+            }, 500);
+        }
+
+        function aiMove() {
+            if (gameOver) return;
+            
+            let bestMove = findBestMove();
+            placePiece(bestMove.row, bestMove.col, WHITE);
+            moveHistory.push({row: bestMove.row, col: bestMove.col, player: WHITE});
+            
+            if (checkWin(bestMove.row, bestMove.col, WHITE)) {
+                document.getElementById('status').textContent = 'AI贏了！再試一次吧！';
+                document.getElementById('status').className = 'status lose';
+                gameOver = true;
+                return;
+            }
+            
+            if (isBoardFull()) {
+                document.getElementById('status').textContent = '平局！';
+                gameOver = true;
+                return;
+            }
+            
+            currentPlayer = BLACK;
+            document.getElementById('status').textContent = '輪到您下棋';
+        }
+
+        function findBestMove() {
+            let bestScore = -Infinity;
+            let bestMove = {row: 0, col: 0};
+            
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === EMPTY) {
+                        let score = evaluatePosition(i, j, WHITE);
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = {row: i, col: j};
+                        }
+                    }
+                }
+            }
+            
+            return bestMove;
+        }
+
+        function evaluatePosition(row, col, player) {
+            let score = 0;
+            const directions = [
+                [0, 1], [1, 0], [1, 1], [1, -1]
+            ];
+            
+            for (let [dx, dy] of directions) {
+                score += evaluateDirection(row, col, dx, dy, player);
+            }
+            
+            return score;
+        }
+
+        function evaluateDirection(row, col, dx, dy, player) {
+            let score = 0;
+            let count = 1;
+            let emptyEnds = 0;
+            
+            for (let i = 1; i <= 4; i++) {
+                let newRow = row + dx * i;
+                let newCol = col + dy * i;
+                
+                if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) break;
+                
+                if (board[newRow][newCol] === player) {
+                    count++;
+                } else if (board[newRow][newCol] === EMPTY) {
+                    emptyEnds++;
+                    break;
+                } else {
+                    break;
+                }
+            }
+            
+            for (let i = 1; i <= 4; i++) {
+                let newRow = row - dx * i;
+                let newCol = col - dy * i;
+                
+                if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) break;
+                
+                if (board[newRow][newCol] === player) {
+                    count++;
+                } else if (board[newRow][newCol] === EMPTY) {
+                    emptyEnds++;
+                    break;
+                } else {
+                    break;
+                }
+            }
+            
+            if (count >= 5) return 100000;
+            if (count === 4 && emptyEnds === 2) return 10000;
+            if (count === 4 && emptyEnds === 1) return 1000;
+            if (count === 3 && emptyEnds === 2) return 500;
+            if (count === 3 && emptyEnds === 1) return 100;
+            if (count === 2 && emptyEnds === 2) return 50;
+            
+            return 0;
+        }
+
+        function placePiece(row, col, player) {
+            board[row][col] = player;
+            
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const piece = document.createElement('div');
+            piece.className = `piece ${player === BLACK ? 'black' : 'white'}`;
+            cell.appendChild(piece);
+        }
+
+        function checkWin(row, col, player) {
+            const directions = [
+                [0, 1], [1, 0], [1, 1], [1, -1]
+            ];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1;
+                
+                for (let i = 1; i <= 4; i++) {
+                    let newRow = row + dx * i;
+                    let newCol = col + dy * i;
+                    
+                    if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) break;
+                    if (board[newRow][newCol] !== player) break;
+                    
+                    count++;
+                }
+                
+                for (let i = 1; i <= 4; i++) {
+                    let newRow = row - dx * i;
+                    let newCol = col - dy * i;
+                    
+                    if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) break;
+                    if (board[newRow][newCol] !== player) break;
+                    
+                    count++;
+                }
+                
+                if (count >= 5) return true;
+            }
+            
+            return false;
+        }
+
+        function isBoardFull() {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === EMPTY) return false;
+                }
+            }
+            return true;
+        }
+
+        function resetGame() {
+            gameOver = false;
+            currentPlayer = BLACK;
+            moveHistory = [];
+            document.getElementById('status').textContent = '輪到您下棋';
+            document.getElementById('status').className = 'status';
+            initBoard();
+        }
+
+        function undoMove() {
+            if (moveHistory.length < 2 || gameOver) return;
+            
+            for (let i = 0; i < 2; i++) {
+                const move = moveHistory.pop();
+                board[move.row][move.col] = EMPTY;
+                const cell = document.querySelector(`.cell[data-row="${move.row}"][data-col="${move.col}"]`);
+                cell.innerHTML = '';
+            }
+            
+            currentPlayer = BLACK;
+            document.getElementById('status').textContent = '輪到您下棋';
+        }
+
+        window.onload = initBoard;
+    </script>
+</body>
+</html>

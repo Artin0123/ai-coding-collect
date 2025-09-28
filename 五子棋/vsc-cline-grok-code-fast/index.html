@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>五子棋遊戲 - 人機對戰</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                margin: 20px;
+                background-color: #f0f0f0;
+            }
+
+            h1 {
+                color: #333;
+            }
+
+            #board {
+                display: inline-block;
+                border: 2px solid #333;
+                margin: 20px auto;
+                background-color: #d4b46a;
+            }
+
+            .row {
+                display: flex;
+            }
+
+            .cell {
+                width: 30px;
+                height: 30px;
+                border: 1px solid #333;
+                cursor: pointer;
+                position: relative;
+                background-color: #d4b46a;
+            }
+
+            .cell:hover {
+                background-color: #e6d3a3;
+            }
+
+            .stone {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+            }
+
+            .black {
+                background-color: black;
+            }
+
+            .white {
+                background-color: white;
+                border: 1px solid #ccc;
+            }
+
+            #status {
+                font-size: 18px;
+                margin-top: 20px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                margin: 10px;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>五子棋遊戲 - 人機對戰</h1>
+        <div id="board"></div>
+        <div id="status">輪到玩家下棋 (黑棋)</div>
+        <button id="resetBtn">重新開始</button>
+        <script>
+            const boardSize = 15;
+            let board = Array.from({ length: boardSize }, () => Array(boardSize).fill(0)); // 0: empty, 1: black, 2: white
+            let currentPlayer = 1; // 1: black (player), 2: white (AI)
+            let gameOver = false;
+
+            function createBoard() {
+                const boardDiv = document.getElementById('board');
+                boardDiv.innerHTML = '';
+                for (let i = 0; i < boardSize; i++) {
+                    const row = document.createElement('div');
+                    row.classList.add('row');
+                    for (let j = 0; j < boardSize; j++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('cell');
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        row.appendChild(cell);
+                    }
+                    boardDiv.appendChild(row);
+                }
+                updateBoard();
+                addEventListeners();
+            }
+
+            function updateBoard() {
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    cell.innerHTML = '';
+                    if (board[row][col] !== 0) {
+                        const stone = document.createElement('div');
+                        stone.classList.add('stone', board[row][col] === 1 ? 'black' : 'white');
+                        cell.appendChild(stone);
+                    }
+                });
+            }
+
+            function addEventListeners() {
+                const cells = document.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.addEventListener('click', handleClick);
+                });
+            }
+
+            function handleClick(event) {
+                if (gameOver) return;
+                const row = parseInt(event.target.dataset.row);
+                const col = parseInt(event.target.dataset.col);
+                if (board[row][col] !== 0) return; // cell already occupied
+
+                board[row][col] = currentPlayer;
+                updateBoard();
+
+                if (checkWin(row, col, currentPlayer)) {
+                    gameOver = true;
+                    document.getElementById('status').textContent = `${currentPlayer === 1 ? '玩家' : 'AI'} 獲勝！`;
+                    return;
+                }
+
+                currentPlayer = 3 - currentPlayer; // switch player
+
+                if (currentPlayer === 2) { // AI's turn
+                    document.getElementById('status').textContent = 'AI 思考中...';
+                    setTimeout(aiMove, 500);
+                } else {
+                    document.getElementById('status').textContent = '輪到玩家下棋 (黑棋)';
+                }
+            }
+
+            function aiMove() {
+                if (gameOver) return;
+
+                // Simple AI: random move
+                const emptyCells = [];
+                for (let i = 0; i < boardSize; i++) {
+                    for (let j = 0; j < boardSize; j++) {
+                        if (board[i][j] === 0) {
+                            emptyCells.push({ row: i, col: j });
+                        }
+                    }
+                }
+                if (emptyCells.length === 0) return;
+
+                const randomIndex = Math.floor(Math.random() * emptyCells.length);
+                const { row, col } = emptyCells[randomIndex];
+                board[row][col] = 2; // AI is white
+                updateBoard();
+
+                if (checkWin(row, col, 2)) {
+                    gameOver = true;
+                    document.getElementById('status').textContent = 'AI 獲勝！';
+                    return;
+                }
+
+                currentPlayer = 1; // back to player
+                document.getElementById('status').textContent = '輪到玩家下棋 (黑棋)';
+            }
+
+            function checkWin(row, col, player) {
+                const directions = [
+                    [0, 1], // horizontal
+                    [1, 0], // vertical
+                    [1, 1], // diagonal \
+                    [1, -1] // diagonal /
+                ];
+
+                for (const [dr, dc] of directions) {
+                    let count = 1;
+                    // check forward
+                    for (let i = 1; i < 5; i++) {
+                        const r = row + i * dr;
+                        const c = col + i * dc;
+                        if (r < 0 || r >= boardSize || c < 0 || c >= boardSize || board[r][c] !== player) break;
+                        count++;
+                    }
+                    // check backward
+                    for (let i = 1; i < 5; i++) {
+                        const r = row - i * dr;
+                        const c = col - i * dc;
+                        if (r < 0 || r >= boardSize || c < 0 || c >= boardSize || board[r][c] !== player) break;
+                        count++;
+                    }
+                    if (count >= 5) return true;
+                }
+                return false;
+            }
+
+            function resetGame() {
+                board = Array.from({ length: boardSize }, () => Array(boardSize).fill(0));
+                currentPlayer = 1;
+                gameOver = false;
+                document.getElementById('status').textContent = '輪到玩家下棋 (黑棋)';
+                createBoard();
+            }
+
+            document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+            // Initialize the game
+            createBoard();
+        </script>
+    </body>
+
+</html>

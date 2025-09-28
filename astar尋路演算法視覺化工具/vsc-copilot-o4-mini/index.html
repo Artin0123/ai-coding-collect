@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>A* Pathfinding Visualizer</title>
+        <style>
+            body {
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                height: 100vh;
+                background: #fff;
+            }
+
+            h1 {
+                margin-bottom: 20px;
+                font-family: Arial, sans-serif;
+            }
+
+            #grid {
+                display: grid;
+                grid-template-columns: repeat(25, 20px);
+                grid-template-rows: repeat(25, 20px);
+            }
+
+            .cell {
+                width: 20px;
+                height: 20px;
+                border: 1px solid #ccc;
+                background: #fdfdfd;
+            }
+
+            .start {
+                background: #2ecc71;
+            }
+
+            .end {
+                background: #e74c3c;
+            }
+
+            .wall {
+                background: #34495e;
+            }
+
+            .open {
+                background: #aed6f1;
+            }
+
+            .closed {
+                background: #f5cba7;
+            }
+
+            .path {
+                background: #f1c40f;
+            }
+
+            #controls {
+                margin-top: 20px;
+            }
+
+            button {
+                background: #3498db;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            }
+
+            button+button {
+                margin-left: 10px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>A* Pathfinding Visualizer</h1>
+        <div id="grid"></div>
+        <div id="controls">
+            <button id="findBtn">開始尋路</button>
+            <button id="resetBtn">重設</button>
+        </div>
+        <script>
+            const ROWS = 25, COLS = 25;
+            const gridEl = document.getElementById('grid');
+            let startSet = false, endSet = false;
+            let startNode = null, endNode = null;
+            let isMouseDown = false;
+
+            const grid = [];
+            const gScore = [];
+            const fScore = [];
+            const cameFrom = [];
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // 建立格子
+            for (let r = 0; r < ROWS; r++) {
+                grid[r] = [];
+                gScore[r] = [];
+                fScore[r] = [];
+                cameFrom[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+                    gridEl.appendChild(cell);
+                    grid[r][c] = cell;
+                    gScore[r][c] = Infinity;
+                    fScore[r][c] = Infinity;
+                    cameFrom[r][c] = null;
+
+                    cell.addEventListener('click', () => {
+                        if (!startSet) {
+                            cell.classList.add('start');
+                            startSet = true;
+                            startNode = [r, c];
+                        } else if (!endSet) {
+                            cell.classList.add('end');
+                            endSet = true;
+                            endNode = [r, c];
+                        }
+                    });
+
+                    cell.addEventListener('mousedown', (e) => {
+                        if (startSet && endSet) {
+                            if (!cell.classList.contains('start') && !cell.classList.contains('end')) {
+                                isMouseDown = true;
+                                cell.classList.add('wall');
+                            }
+                        }
+                    });
+
+                    cell.addEventListener('mouseover', () => {
+                        if (isMouseDown) {
+                            if (!cell.classList.contains('start') && !cell.classList.contains('end')) {
+                                cell.classList.add('wall');
+                            }
+                        }
+                    });
+                }
+            }
+
+            document.body.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+
+            // 控制按鈕
+            const findBtn = document.getElementById('findBtn');
+            const resetBtn = document.getElementById('resetBtn');
+
+            resetBtn.addEventListener('click', () => {
+                location.reload();
+            });
+
+            findBtn.addEventListener('click', () => {
+                if (!startSet || !endSet) return;
+                findBtn.disabled = true;
+                aStar();
+            });
+
+            // 曼哈頓距離
+            function heuristic(a, b) {
+                return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]);
+            }
+
+            async function aStar() {
+                const openSet = [];
+                gScore[startNode[0]][startNode[1]] = 0;
+                fScore[startNode[0]][startNode[1]] = heuristic(startNode, endNode);
+                openSet.push(startNode);
+
+                while (openSet.length > 0) {
+                    // 視覺化延遲
+                    await sleep(10);
+
+                    // 找出 fScore 最小的節點
+                    let currentIdx = 0;
+                    for (let i = 1; i < openSet.length; i++) {
+                        const [r, c] = openSet[i];
+                        const [cr, cc] = openSet[currentIdx];
+                        if (fScore[r][c] < fScore[cr][cc]) currentIdx = i;
+                    }
+                    const [cr, cc] = openSet.splice(currentIdx, 1)[0];
+                    const currentEl = grid[cr][cc];
+
+                    // 到達終點
+                    if (cr === endNode[0] && cc === endNode[1]) {
+                        reconstructPath(currentEl, [cr, cc]);
+                        findBtn.disabled = false;
+                        return;
+                    }
+
+                    // 標示為封閉列表
+                    currentEl.classList.add('closed');
+
+                    // 四個方向
+                    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+                    for (const [dr, dc] of dirs) {
+                        const nr = cr + dr, nc = cc + dc;
+                        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+                        const neighborEl = grid[nr][nc];
+                        if (neighborEl.classList.contains('wall') || neighborEl.classList.contains('closed')) continue;
+
+                        const tentativeG = gScore[cr][cc] + 1;
+                        if (tentativeG < gScore[nr][nc]) {
+                            cameFrom[nr][nc] = [cr, cc];
+                            gScore[nr][nc] = tentativeG;
+                            fScore[nr][nc] = tentativeG + heuristic([nr, nc], endNode);
+                            if (!openSet.some(([r, c]) => r === nr && c === nc)) {
+                                openSet.push([nr, nc]);
+                                neighborEl.classList.add('open');
+                            }
+                        }
+                    }
+                }
+
+                alert('無法找到路徑');
+                findBtn.disabled = false;
+            }
+
+            function reconstructPath(el, node) {
+                let [r, c] = node;
+                while (cameFrom[r][c]) {
+                    const prev = cameFrom[r][c];
+                    el = grid[r][c];
+                    el.classList.remove('open', 'closed');
+                    el.classList.add('path');
+                    [r, c] = prev;
+                }
+                // 標示起點
+                grid[startNode[0]][startNode[1]].classList.add('path');
+            }
+        </script>
+    </body>
+
+</html>

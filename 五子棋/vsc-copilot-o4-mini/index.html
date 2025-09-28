@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>五子棋 - 人機對戰</title>
+        <style>
+            canvas {
+                border: 1px solid #000;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>五子棋 - 人機對戰</h1>
+        <canvas id="board" width="600" height="600"></canvas>
+        <script>
+            const rows = 15, cols = 15;
+            const canvas = document.getElementById('board');
+            const ctx = canvas.getContext('2d');
+            const cellSize = 40;
+            const board = [];
+            let currentPlayer = 1; // 1: human, 2: AI
+
+            // 初始化棋盤
+            for (let i = 0; i < rows; i++) {
+                board[i] = Array(cols).fill(0);
+            }
+            drawBoard();
+            canvas.addEventListener('click', handleClick);
+
+            function drawBoard() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        ctx.strokeRect(j * cellSize + 0.5, i * cellSize + 0.5, cellSize, cellSize);
+                        if (board[i][j] !== 0) {
+                            drawPiece(j, i, board[i][j]);
+                        }
+                    }
+                }
+            }
+
+            function drawPiece(x, y, player) {
+                const centerX = x * cellSize + cellSize / 2;
+                const centerY = y * cellSize + cellSize / 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, cellSize / 2 - 2, 0, 2 * Math.PI);
+                ctx.fillStyle = player === 1 ? '#000' : '#fff';
+                ctx.fill();
+            }
+
+            function handleClick(e) {
+                if (currentPlayer !== 1) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / cellSize);
+                const y = Math.floor((e.clientY - rect.top) / cellSize);
+                if (x < 0 || x >= cols || y < 0 || y >= rows || board[y][x] !== 0) return;
+                board[y][x] = 1;
+                drawBoard();
+                if (checkWin(y, x, 1)) {
+                    setTimeout(() => alert('你贏了！'), 10);
+                    canvas.removeEventListener('click', handleClick);
+                    return;
+                }
+                currentPlayer = 2;
+                setTimeout(aiMove, 200);
+            }
+
+            function aiMove() {
+                // 簡單隨機 AI
+                const empties = [];
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        if (board[i][j] === 0) empties.push([i, j]);
+                    }
+                }
+                if (empties.length === 0) return;
+                const [y, x] = empties[Math.floor(Math.random() * empties.length)];
+                board[y][x] = 2;
+                drawBoard();
+                if (checkWin(y, x, 2)) {
+                    setTimeout(() => alert('AI 獲勝！'), 10);
+                    canvas.removeEventListener('click', handleClick);
+                    return;
+                }
+                currentPlayer = 1;
+            }
+
+            function checkWin(row, col, player) {
+                const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+                for (const [dx, dy] of dirs) {
+                    let count = 1;
+                    // 向正方向
+                    for (let step = 1; step < 5; step++) {
+                        const x = col + dx * step, y = row + dy * step;
+                        if (y >= 0 && y < rows && x >= 0 && x < cols && board[y][x] === player) count++;
+                        else break;
+                    }
+                    // 向反方向
+                    for (let step = 1; step < 5; step++) {
+                        const x = col - dx * step, y = row - dy * step;
+                        if (y >= 0 && y < rows && x >= 0 && x < cols && board[y][x] === player) count++;
+                        else break;
+                    }
+                    if (count >= 5) return true;
+                }
+                return false;
+            }
+        </script>
+    </body>
+
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋遊戲 - 人機對戰</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>五子棋遊戲</h1>
+        <div class="game-info">
+            <div class="status">輪到黑棋</div>
+            <div class="controls">
+                <button id="new-game">新遊戲</button>
+                <button id="ai-first">AI先手</button>
+                <button id="human-first">玩家先手</button>
+            </div>
+        </div>
+        
+        <div class="board" id="board">
+            <!-- 棋盤將由JavaScript動態生成 -->
+        </div>
+        
+        <div class="game-result" id="game-result" style="display: none;">
+            <div class="result-text"></div>
+            <button id="play-again">再玩一次</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

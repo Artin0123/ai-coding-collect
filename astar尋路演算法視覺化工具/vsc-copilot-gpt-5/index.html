@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>A* Pathfinding Visualizer</title>
+        <style>
+            /* 版面配置：整頁水平與垂直置中 */
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+            }
+
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #ffffff;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+                color: #2c3e50;
+            }
+
+            .app {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+            }
+
+            h1 {
+                margin: 0 0 8px 0;
+                font-size: 24px;
+                font-weight: 700;
+                text-align: center;
+            }
+
+            /* 網格容器：25x25、每格 20px */
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(25, 20px);
+                grid-template-rows: repeat(25, 20px);
+                gap: 0;
+                /* 邊框已足夠表現格線 */
+                user-select: none;
+            }
+
+            .cell {
+                width: 20px;
+                height: 20px;
+                border: 1px solid #ccc;
+                /* 指定 1px 邊框 */
+                box-sizing: border-box;
+                background: #fdfdfd;
+                /* 預設底色 */
+            }
+
+            /* 顏色規範 */
+            .cell.start {
+                background: #2ecc71;
+            }
+
+            .cell.end {
+                background: #e74c3c;
+            }
+
+            .cell.wall {
+                background: #34495e;
+            }
+
+            .cell.open {
+                background: #aed6f1;
+            }
+
+            .cell.closed {
+                background: #f5cba7;
+            }
+
+            .cell.path {
+                background: #f1c40f;
+            }
+
+            /* 控制區與按鈕樣式 */
+            .controls {
+                display: flex;
+                gap: 10px;
+                /* 按鈕之間 10px 間距 */
+                margin-top: 8px;
+            }
+
+            button {
+                background: #3498db;
+                /* 指定背景色 */
+                color: white;
+                /* 指定文字顏色 */
+                padding: 10px 20px;
+                /* 指定內邊距 */
+                border: none;
+                /* 指定邊框 */
+                border-radius: 5px;
+                /* 指定圓角 */
+                cursor: pointer;
+                /* 指定滑鼠指標 */
+                font-size: 14px;
+            }
+
+            button:disabled {
+                opacity: 0.65;
+                cursor: not-allowed;
+            }
+
+            .status {
+                min-height: 20px;
+                font-size: 13px;
+                color: #34495e;
+            }
+        </style>
+    </head>
+
+    <body>
+        <main class="app">
+            <h1>A* Pathfinding Visualizer</h1>
+            <div id="grid" class="grid" aria-label="grid" role="grid"></div>
+
+            <div class="controls">
+                <button id="findBtn" disabled>開始尋路 (Find Path)</button>
+                <button id="resetBtn">重設 (Reset)</button>
+            </div>
+
+            <div id="status" class="status"></div>
+        </main>
+
+        <script>
+            // 規格參數
+            const ROWS = 25;
+            const COLS = 25;
+
+            // 顏色狀態以 CSS class 呈現
+            const CellType = Object.freeze({
+                EMPTY: 'empty',
+                START: 'start',
+                END: 'end',
+                WALL: 'wall',
+                OPEN: 'open',
+                CLOSED: 'closed',
+                PATH: 'path',
+            });
+
+            const gridEl = document.getElementById('grid');
+            const findBtn = document.getElementById('findBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const statusEl = document.getElementById('status');
+
+            // 內部資料結構：每個 cell 對應一個物件，含視覺元素與尋路欄位
+            const grid = []; // grid[row][col] -> { x, y, el, type, g, h, f, parent }
+
+            let startNode = null;
+            let endNode = null;
+            let hasStart = false;
+            let hasEnd = false;
+
+            let isDrawing = false; // 拖曳繪製障礙物
+            let isRunning = false; // A* 執行中，禁止互動
+
+            function setStatus(msg) {
+                statusEl.textContent = msg || '';
+            }
+
+            function createGrid() {
+                gridEl.innerHTML = '';
+                grid.length = 0;
+                for (let y = 0; y < ROWS; y++) {
+                    const row = [];
+                    for (let x = 0; x < COLS; x++) {
+                        const el = document.createElement('div');
+                        el.className = 'cell';
+                        el.setAttribute('role', 'gridcell');
+                        el.dataset.x = String(x);
+                        el.dataset.y = String(y);
+
+                        const cell = {
+                            x, y, el,
+                            type: CellType.EMPTY,
+                            g: Infinity,
+                            h: 0,
+                            f: Infinity,
+                            parent: null,
+                        };
+
+                        // 事件：
+                        el.addEventListener('click', () => onCellClick(cell));
+                        el.addEventListener('mousedown', (e) => onCellMouseDown(e, cell));
+                        el.addEventListener('mouseenter', () => onCellMouseEnter(cell));
+
+                        row.push(cell);
+                        gridEl.appendChild(el);
+                    }
+                    grid.push(row);
+                }
+
+                // 全域 mouseup 以結束拖曳
+                document.addEventListener('mouseup', () => { isDrawing = false; });
+            }
+
+            function clearClasses(el) {
+                el.classList.remove('start', 'end', 'wall', 'open', 'closed', 'path');
+            }
+
+            function applyType(cell, type) {
+                // 僅負責視覺 class，cell.type 視情況更新（牆/起點/終點等）
+                clearClasses(cell.el);
+                if (type && type !== CellType.EMPTY) {
+                    cell.el.classList.add(type);
+                }
+            }
+
+            function setCellAsStart(cell) {
+                if (cell === endNode) return; // 不覆蓋終點
+                // 清理舊 start
+                if (startNode) {
+                    startNode.type = CellType.EMPTY;
+                    applyType(startNode, CellType.EMPTY);
+                }
+                startNode = cell;
+                cell.type = CellType.START;
+                applyType(cell, CellType.START);
+                hasStart = true;
+            }
+
+            function setCellAsEnd(cell) {
+                if (cell === startNode) return; // 不覆蓋起點
+                if (endNode) {
+                    endNode.type = CellType.EMPTY;
+                    applyType(endNode, CellType.EMPTY);
+                }
+                endNode = cell;
+                cell.type = CellType.END;
+                applyType(cell, CellType.END);
+                hasEnd = true;
+            }
+
+            function setCellAsWall(cell) {
+                if (cell === startNode || cell === endNode) return;
+                if (cell.type === CellType.WALL) return; // 已是牆
+                cell.type = CellType.WALL;
+                applyType(cell, CellType.WALL);
+            }
+
+            function onCellClick(cell) {
+                if (isRunning) return;
+                if (!hasStart) {
+                    setCellAsStart(cell);
+                    setStatus('請選擇終點');
+                } else if (!hasEnd) {
+                    if (cell === startNode) return;
+                    setCellAsEnd(cell);
+                    setStatus('已設定起點與終點：拖曳滑鼠左鍵繪製障礙物，或點擊「開始尋路」');
+                    findBtn.disabled = false;
+                } else {
+                    // 之後以拖曳繪製障礙物，單擊不處理
+                }
+            }
+
+            function onCellMouseDown(e, cell) {
+                if (isRunning) return;
+                if (!hasStart || !hasEnd) return; // 需要先設好起終點
+                if (e.button !== 0) return; // 僅左鍵
+                isDrawing = true;
+                setCellAsWall(cell);
+            }
+
+            function onCellMouseEnter(cell) {
+                if (isRunning) return;
+                if (!hasStart || !hasEnd) return;
+                if (isDrawing) {
+                    setCellAsWall(cell);
+                }
+            }
+
+            function resetSearchState() {
+                // 僅清除搜尋相關（open/closed/path 與 g/h/f/parent），保留 start/end/wall
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        const cell = grid[y][x];
+                        cell.g = Infinity;
+                        cell.h = 0;
+                        cell.f = Infinity;
+                        cell.parent = null;
+
+                        if (cell.type !== CellType.START && cell.type !== CellType.END && cell.type !== CellType.WALL) {
+                            cell.type = CellType.EMPTY;
+                            applyType(cell, CellType.EMPTY);
+                        }
+                        // 也確保搜尋色被清掉
+                        if (cell.el.classList.contains('open') || cell.el.classList.contains('closed') || cell.el.classList.contains('path')) {
+                            if (cell.type === CellType.START) applyType(cell, CellType.START);
+                            else if (cell.type === CellType.END) applyType(cell, CellType.END);
+                            else if (cell.type === CellType.WALL) applyType(cell, CellType.WALL);
+                            else applyType(cell, CellType.EMPTY);
+                        }
+                    }
+                }
+            }
+
+            function hardResetGrid() {
+                // 完全清除：起點、終點、障礙、路徑
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        const cell = grid[y][x];
+                        cell.type = CellType.EMPTY;
+                        cell.g = Infinity;
+                        cell.h = 0;
+                        cell.f = Infinity;
+                        cell.parent = null;
+                        applyType(cell, CellType.EMPTY);
+                    }
+                }
+                startNode = null;
+                endNode = null;
+                hasStart = false;
+                hasEnd = false;
+                isDrawing = false;
+                isRunning = false;
+                findBtn.disabled = true;
+                setStatus('請先點擊網格設定起點，接著設定終點');
+            }
+
+            function manhattan(ax, ay, bx, by) {
+                return Math.abs(ax - bx) + Math.abs(ay - by);
+            }
+
+            function sleep(ms) {
+                return new Promise((res) => setTimeout(res, ms));
+            }
+
+            function neighbors4(cell) {
+                const res = [];
+                const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+                for (const [dx, dy] of dirs) {
+                    const nx = cell.x + dx;
+                    const ny = cell.y + dy;
+                    if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                        res.push(grid[ny][nx]);
+                    }
+                }
+                return res;
+            }
+
+            function setOpen(cell) {
+                if (cell.type === CellType.START || cell.type === CellType.END || cell.type === CellType.WALL) return;
+                applyType(cell, CellType.OPEN);
+            }
+
+            function setClosed(cell) {
+                if (cell.type === CellType.START || cell.type === CellType.END || cell.type === CellType.WALL) return;
+                applyType(cell, CellType.CLOSED);
+            }
+
+            function setPath(cell) {
+                // 最終路徑需覆蓋 open/closed 顏色，但不要覆蓋起點/終點
+                if (cell === startNode || cell === endNode) return;
+                applyType(cell, CellType.PATH);
+            }
+
+            function reconstructPath(endCell) {
+                const path = [];
+                let cur = endCell;
+                while (cur) {
+                    path.push(cur);
+                    cur = cur.parent;
+                }
+                return path.reverse();
+            }
+
+            async function runAStar() {
+                if (!startNode || !endNode) return;
+                isRunning = true;
+                findBtn.disabled = true; // 尋路過程禁止觸發
+                setStatus('尋路中…');
+
+                resetSearchState(); // 清理舊的 open/closed/path 狀態
+
+                const openSet = [];
+                const inOpen = new Set();
+                const closed = new Set();
+
+                const start = startNode;
+                const goal = endNode;
+
+                start.g = 0;
+                start.h = manhattan(start.x, start.y, goal.x, goal.y);
+                start.f = start.g + start.h;
+
+                openSet.push(start);
+                inOpen.add(start.y * COLS + start.x);
+
+                // 主回圈：每步延遲 10ms
+                while (openSet.length > 0) {
+                    // 取出 f 最小（如同優先佇列）。若 f 相同，以 h 較小者優先。
+                    let bestIdx = 0;
+                    for (let i = 1; i < openSet.length; i++) {
+                        const a = openSet[i];
+                        const b = openSet[bestIdx];
+                        if (a.f < b.f || (a.f === b.f && a.h < b.h)) {
+                            bestIdx = i;
+                        }
+                    }
+                    const current = openSet.splice(bestIdx, 1)[0];
+                    inOpen.delete(current.y * COLS + current.x);
+
+                    const key = current.y * COLS + current.x;
+                    if (!closed.has(key)) {
+                        closed.add(key);
+                        if (current !== start && current !== goal) setClosed(current);
+                    }
+
+                    if (current === goal) {
+                        const path = reconstructPath(current);
+                        for (const cell of path) {
+                            setPath(cell); // 會自動避開起終點
+                        }
+                        setStatus(`完成！路徑長度：${path.length - 1}`);
+                        isRunning = false;
+                        findBtn.disabled = false;
+                        return;
+                    }
+
+                    for (const nb of neighbors4(current)) {
+                        if (nb.type === CellType.WALL) continue;
+                        const nbKey = nb.y * COLS + nb.x;
+                        if (closed.has(nbKey)) continue;
+
+                        const tentativeG = current.g + 1; // 4 向移動成本 1
+
+                        const notInOpen = !inOpen.has(nbKey);
+                        if (notInOpen || tentativeG < nb.g) {
+                            nb.parent = current;
+                            nb.g = tentativeG;
+                            nb.h = manhattan(nb.x, nb.y, goal.x, goal.y);
+                            nb.f = nb.g + nb.h;
+
+                            if (notInOpen) {
+                                openSet.push(nb);
+                                inOpen.add(nbKey);
+                                if (nb !== start && nb !== goal) setOpen(nb);
+                            } else {
+                                // 已在 open，更新後也保持 open 視覺
+                                if (nb !== start && nb !== goal) setOpen(nb);
+                            }
+                        }
+                    }
+
+                    // 步進延遲 10ms
+                    await sleep(10);
+                }
+
+                // 無路徑
+                setStatus('找不到從起點到終點的路徑。');
+                isRunning = false;
+                findBtn.disabled = false;
+            }
+
+            // 事件繫結
+            findBtn.addEventListener('click', () => {
+                if (isRunning) return;
+                if (!hasStart || !hasEnd) return;
+                runAStar();
+            });
+
+            resetBtn.addEventListener('click', () => {
+                if (isRunning) return; // 避免執行中重置（也可強制停止，這裡選擇保守）
+                hardResetGrid();
+            });
+
+            // 初始化
+            createGrid();
+            setStatus('請先點擊網格設定起點，接著設定終點');
+        </script>
+    </body>
+
+</html>

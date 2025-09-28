@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋遊戲</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .game-container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .current-player {
+            color: #007bff;
+        }
+        
+        .board {
+            display: inline-block;
+            background-color: #deb887;
+            border: 3px solid #8b4513;
+            padding: 10px;
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #8b4513;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            vertical-align: top;
+        }
+        
+        .cell:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .piece {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            border: 2px solid #333;
+        }
+        
+        .black {
+            background-color: #000;
+        }
+        
+        .white {
+            background-color: #fff;
+        }
+        
+        .controls {
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .game-over {
+            color: #dc3545;
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>五子棋遊戲</h1>
+        <div class="game-info">
+            <div class="current-player" id="currentPlayer">輪到：黑子（玩家）</div>
+            <div id="gameStatus"></div>
+        </div>
+        <div class="board" id="board"></div>
+        <div class="controls">
+            <button onclick="resetGame()">重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 15;
+        let board = [];
+        let currentPlayer = 1; // 1 for black (player), 2 for white (AI)
+        let gameOver = false;
+
+        function initBoard() {
+            board = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                board[i] = [];
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    board[i][j] = 0;
+                }
+            }
+        }
+
+        function createBoardHTML() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.onclick = () => makeMove(i, j);
+                    boardElement.appendChild(cell);
+                }
+                boardElement.appendChild(document.createElement('br'));
+            }
+        }
+
+        function makeMove(row, col) {
+            if (gameOver || board[row][col] !== 0 || currentPlayer !== 1) {
+                return;
+            }
+
+            board[row][col] = currentPlayer;
+            updateBoard();
+            
+            if (checkWin(row, col, currentPlayer)) {
+                endGame('玩家獲勝！');
+                return;
+            }
+            
+            if (isBoardFull()) {
+                endGame('平局！');
+                return;
+            }
+
+            currentPlayer = 2;
+            updateCurrentPlayer();
+            
+            setTimeout(() => {
+                aiMove();
+            }, 500);
+        }
+
+        function aiMove() {
+            if (gameOver) return;
+
+            const move = getBestMove();
+            if (move) {
+                board[move.row][move.col] = 2;
+                updateBoard();
+                
+                if (checkWin(move.row, move.col, 2)) {
+                    endGame('AI獲勝！');
+                    return;
+                }
+                
+                if (isBoardFull()) {
+                    endGame('平局！');
+                    return;
+                }
+
+                currentPlayer = 1;
+                updateCurrentPlayer();
+            }
+        }
+
+        function getBestMove() {
+            // 簡單的AI策略：優先阻擋玩家，然後尋找自己的機會
+            
+            // 檢查是否能獲勝
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === 0) {
+                        board[i][j] = 2;
+                        if (checkWin(i, j, 2)) {
+                            board[i][j] = 0;
+                            return {row: i, col: j};
+                        }
+                        board[i][j] = 0;
+                    }
+                }
+            }
+            
+            // 檢查是否需要阻擋玩家
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === 0) {
+                        board[i][j] = 1;
+                        if (checkWin(i, j, 1)) {
+                            board[i][j] = 0;
+                            return {row: i, col: j};
+                        }
+                        board[i][j] = 0;
+                    }
+                }
+            }
+            
+            // 尋找最佳位置（靠近已有棋子的位置）
+            let bestScore = -1;
+            let bestMove = null;
+            
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === 0) {
+                        let score = evaluatePosition(i, j);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = {row: i, col: j};
+                        }
+                    }
+                }
+            }
+            
+            return bestMove;
+        }
+
+        function evaluatePosition(row, col) {
+            let score = 0;
+            
+            // 檢查周圍是否有棋子
+            for (let di = -1; di <= 1; di++) {
+                for (let dj = -1; dj <= 1; dj++) {
+                    if (di === 0 && dj === 0) continue;
+                    
+                    let ni = row + di;
+                    let nj = col + dj;
+                    
+                    if (ni >= 0 && ni < BOARD_SIZE && nj >= 0 && nj < BOARD_SIZE) {
+                        if (board[ni][nj] !== 0) {
+                            score += 1;
+                        }
+                    }
+                }
+            }
+            
+            // 中心位置加分
+            let centerDistance = Math.abs(row - 7) + Math.abs(col - 7);
+            score += (14 - centerDistance) * 0.1;
+            
+            return score;
+        }
+
+        function checkWin(row, col, player) {
+            const directions = [
+                [0, 1],   // 水平
+                [1, 0],   // 垂直
+                [1, 1],   // 對角線
+                [1, -1]   // 反對角線
+            ];
+
+            for (let [dx, dy] of directions) {
+                let count = 1;
+                
+                // 正方向
+                let x = row + dx;
+                let y = col + dy;
+                while (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && board[x][y] === player) {
+                    count++;
+                    x += dx;
+                    y += dy;
+                }
+                
+                // 負方向
+                x = row - dx;
+                y = col - dy;
+                while (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && board[x][y] === player) {
+                    count++;
+                    x -= dx;
+                    y -= dy;
+                }
+                
+                if (count >= 5) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function isBoardFull() {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === 0) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function updateBoard() {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+                    cell.innerHTML = '';
+                    
+                    if (board[i][j] === 1) {
+                        const piece = document.createElement('div');
+                        piece.className = 'piece black';
+                        cell.appendChild(piece);
+                    } else if (board[i][j] === 2) {
+                        const piece = document.createElement('div');
+                        piece.className = 'piece white';
+                        cell.appendChild(piece);
+                    }
+                }
+            }
+        }
+
+        function updateCurrentPlayer() {
+            const playerElement = document.getElementById('currentPlayer');
+            if (currentPlayer === 1) {
+                playerElement.textContent = '輪到：黑子（玩家）';
+            } else {
+                playerElement.textContent = '輪到：白子（AI）';
+            }
+        }
+
+        function endGame(message) {
+            gameOver = true;
+            document.getElementById('gameStatus').innerHTML = `<div class="game-over">${message}</div>`;
+        }
+
+        function resetGame() {
+            initBoard();
+            createBoardHTML();
+            currentPlayer = 1;
+            gameOver = false;
+            updateCurrentPlayer();
+            document.getElementById('gameStatus').innerHTML = '';
+        }
+
+        // 初始化遊戲
+        initBoard();
+        createBoardHTML();
+        updateCurrentPlayer();
+    </script>
+</body>
+</html>

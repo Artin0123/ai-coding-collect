@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A* Pathfinding Visualizer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        #grid-container {
+            display: grid;
+            grid-template-columns: repeat(25, 21px);
+            grid-template-rows: repeat(25, 21px);
+            border: 1px solid #ccc;
+        }
+
+        .cell {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            background-color: #fdfdfd;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .start { background-color: #2ecc71; }
+        .end { background-color: #e74c3c; }
+        .wall { background-color: #34495e; }
+        .open { background-color: #aed6f1; }
+        .closed { background-color: #f5cba7; }
+        .path { background-color: #f1c40f; }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>A* Pathfinding Visualizer</h1>
+        <div id="grid-container"></div>
+        <div class="controls">
+            <button id="start-btn">Find Path</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const gridContainer = document.getElementById('grid-container');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        const GRID_WIDTH = 25;
+        const GRID_HEIGHT = 25;
+
+        let grid = [];
+        let startNode = null;
+        let endNode = null;
+        let isMouseDown = false;
+        let settingMode = 'start'; // 'start', 'end', 'wall'
+
+        // Node class for A* algorithm
+        class Node {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.g = 0; // Cost from start
+                this.h = 0; // Heuristic cost to end
+                this.f = 0; // g + h
+                this.parent = null;
+                this.isWall = false;
+            }
+        }
+
+        function createGrid() {
+            gridContainer.innerHTML = '';
+            grid = [];
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                const row = [];
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    gridContainer.appendChild(cell);
+                    row.push(new Node(x, y));
+                }
+                grid.push(row);
+            }
+        }
+
+        function handleCellClick(e) {
+            if (e.target.classList.contains('cell')) {
+                const x = parseInt(e.target.dataset.x);
+                const y = parseInt(e.target.dataset.y);
+
+                if (settingMode === 'start') {
+                    if (startNode) {
+                        const oldStartCell = getCellElement(startNode.x, startNode.y);
+                        if(oldStartCell) oldStartCell.classList.remove('start');
+                    }
+                    startNode = grid[y][x];
+                    e.target.classList.add('start');
+                    settingMode = 'end';
+                } else if (settingMode === 'end') {
+                    if (endNode) {
+                        const oldEndCell = getCellElement(endNode.x, endNode.y);
+                        if(oldEndCell) oldEndCell.classList.remove('end');
+                    }
+                    if (startNode && startNode.x === x && startNode.y === y) return; // Can't be same as start
+                    endNode = grid[y][x];
+                    e.target.classList.add('end');
+                    settingMode = 'wall';
+                } else if (settingMode === 'wall') {
+                     // Wall drawing is handled by mouse drag
+                }
+            }
+        }
+        
+        function handleMouseDown(e) {
+            if (settingMode === 'wall' && e.target.classList.contains('cell')) {
+                isMouseDown = true;
+                toggleWall(e.target);
+            }
+        }
+
+        function handleMouseUp() {
+            isMouseDown = false;
+        }
+
+        function handleMouseOver(e) {
+            if (isMouseDown && settingMode === 'wall' && e.target.classList.contains('cell')) {
+                toggleWall(e.target);
+            }
+        }
+
+        function toggleWall(cellElement) {
+            const x = parseInt(cellElement.dataset.x);
+            const y = parseInt(cellElement.dataset.y);
+            const node = grid[y][x];
+
+            // Prevent drawing wall on start or end node
+            if (node === startNode || node === endNode) return;
+
+            node.isWall = !node.isWall;
+            cellElement.classList.toggle('wall', node.isWall);
+        }
+
+
+        function getCellElement(x, y) {
+            return document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
+        }
+
+        function resetGrid() {
+            startNode = null;
+            endNode = null;
+            settingMode = 'start';
+            startBtn.disabled = false;
+            createGrid();
+        }
+
+        // Event Listeners
+        gridContainer.addEventListener('click', handleCellClick);
+        gridContainer.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mouseup', handleMouseUp);
+        gridContainer.addEventListener('mouseover', handleMouseOver);
+        
+        async function aStar(start, end) {
+            let openSet = [start];
+            let closedSet = [];
+
+            start.g = 0;
+            start.h = manhattanDistance(start, end);
+            start.f = start.h;
+
+            while (openSet.length > 0) {
+                // Find the node in openSet with the lowest f cost
+                let lowestIndex = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < openSet[lowestIndex].f) {
+                        lowestIndex = i;
+                    }
+                }
+                let current = openSet[lowestIndex];
+
+                // Visualization: Show current node in closed set
+                if (current !== start) {
+                    const currentCell = getCellElement(current.x, current.y);
+                    if(currentCell) currentCell.classList.add('closed');
+                }
+
+                // If we reached the end
+                if (current === end) {
+                    await reconstructPath(current);
+                    return;
+                }
+
+                // Move current from openSet to closedSet
+                openSet.splice(lowestIndex, 1);
+                closedSet.push(current);
+
+                const neighbors = getNeighbors(current);
+
+                for (const neighbor of neighbors) {
+                    if (closedSet.includes(neighbor) || neighbor.isWall) {
+                        continue;
+                    }
+
+                    let tentativeG = current.g + 1; // Assuming cost of 1 for adjacent nodes
+
+                    let newPathFound = false;
+                    if (openSet.includes(neighbor)) {
+                        if (tentativeG < neighbor.g) {
+                            neighbor.g = tentativeG;
+                            newPathFound = true;
+                        }
+                    } else {
+                        neighbor.g = tentativeG;
+                        openSet.push(neighbor);
+                        newPathFound = true;
+                        // Visualization: Show new node in open set
+                         if (neighbor !== end) {
+                            const neighborCell = getCellElement(neighbor.x, neighbor.y);
+                            if(neighborCell) neighborCell.classList.add('open');
+                         }
+                    }
+
+                    if (newPathFound) {
+                        neighbor.h = manhattanDistance(neighbor, end);
+                        neighbor.f = neighbor.g + neighbor.h;
+                        neighbor.parent = current;
+                    }
+                }
+                await new Promise(resolve => setTimeout(resolve, 10)); // 10ms delay
+            }
+
+            // No path found
+            alert("No path found!");
+            startBtn.disabled = false;
+        }
+
+        function manhattanDistance(nodeA, nodeB) {
+            return Math.abs(nodeA.x - nodeB.x) + Math.abs(nodeA.y - nodeB.y);
+        }
+
+        function getNeighbors(node) {
+            const neighbors = [];
+            const { x, y } = node;
+
+            // Cardinal directions (no diagonals)
+            if (y > 0) neighbors.push(grid[y - 1][x]); // Top
+            if (y < GRID_HEIGHT - 1) neighbors.push(grid[y + 1][x]); // Bottom
+            if (x > 0) neighbors.push(grid[y][x - 1]); // Left
+            if (x < GRID_WIDTH - 1) neighbors.push(grid[y][x + 1]); // Right
+
+            return neighbors;
+        }
+
+        async function reconstructPath(current) {
+            let path = [];
+            while (current) {
+                path.push(current);
+                current = current.parent;
+            }
+            path.reverse();
+
+            for (const node of path) {
+                 if(node !== startNode && node !== endNode){
+                    const cell = getCellElement(node.x, node.y);
+                    // Override open/closed colors with path color
+                    if(cell) {
+                        cell.classList.remove('open', 'closed');
+                        cell.classList.add('path');
+                    }
+                 }
+                await new Promise(resolve => setTimeout(resolve, 20)); // Faster delay for path drawing
+            }
+        }
+
+
+        resetBtn.addEventListener('click', resetGrid);
+        startBtn.addEventListener('click', () => {
+            if (startNode && endNode) {
+                startBtn.disabled = true;
+                // Clear previous path/search visualization before starting a new one
+                for(let y = 0; y < GRID_HEIGHT; y++) {
+                    for (let x = 0; x < GRID_WIDTH; x++) {
+                        const cell = getCellElement(x,y);
+                        if(cell) {
+                             cell.classList.remove('open', 'closed', 'path');
+                        }
+                        grid[y][x].g = 0;
+                        grid[y][x].h = 0;
+                        grid[y][x].f = 0;
+                        grid[y][x].parent = null;
+                    }
+                }
+                aStar(startNode, endNode);
+            } else {
+                alert("Please set a start and end point first.");
+            }
+        });
+
+        // Initial setup
+        createGrid();
+    </script>
+</body>
+</html>

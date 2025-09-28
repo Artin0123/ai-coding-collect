@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>A* 尋路演算法視覺化工具</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                background-color: #f0f0f0;
+            }
+
+            h1 {
+                margin-bottom: 20px;
+                color: #333;
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(25, 20px);
+                grid-template-rows: repeat(25, 20px);
+                gap: 0;
+                border: 1px solid #ccc;
+            }
+
+            .cell {
+                width: 20px;
+                height: 20px;
+                border: 1px solid #ccc;
+                background-color: #fdfdfd;
+                cursor: pointer;
+            }
+
+            .start {
+                background-color: #2ecc71 !important;
+            }
+
+            .end {
+                background-color: #e74c3c !important;
+            }
+
+            .wall {
+                background-color: #34495e !important;
+            }
+
+            .open {
+                background-color: #aed6f1 !important;
+            }
+
+            .closed {
+                background-color: #f5cba7 !important;
+            }
+
+            .path {
+                background-color: #f1c40f !important;
+            }
+
+            .controls {
+                display: flex;
+                gap: 10px;
+                margin-top: 20px;
+            }
+
+            button {
+                background-color: #3498db;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>A* Pathfinding Visualizer</h1>
+        <div class="grid" id="grid"></div>
+        <div class="controls">
+            <button id="findPathBtn">開始尋路 (Find Path)</button>
+            <button id="resetBtn">重設 (Reset)</button>
+        </div>
+
+        <script>
+            const gridSize = 25;
+            const grid = [];
+            let startNode = null;
+            let endNode = null;
+            let settingStart = true;
+            let settingEnd = false;
+            let isDragging = false;
+            let isPathfinding = false;
+
+            // 初始化網格
+            function createGrid() {
+                const gridElement = document.getElementById('grid');
+                for (let row = 0; row < gridSize; row++) {
+                    grid[row] = [];
+                    for (let col = 0; col < gridSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('cell');
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        grid[row][col] = cell;
+                        gridElement.appendChild(cell);
+
+                        // 點擊事件
+                        cell.addEventListener('mousedown', handleMouseDown);
+                        cell.addEventListener('mouseenter', handleMouseEnter);
+                    }
+                }
+            }
+
+            // 滑鼠事件
+            function handleMouseDown(e) {
+                if (isPathfinding) return;
+                const cell = e.target;
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+
+                if (settingStart) {
+                    if (startNode) {
+                        startNode.classList.remove('start');
+                    }
+                    cell.classList.add('start');
+                    startNode = { row, col, element: cell };
+                    settingStart = false;
+                    settingEnd = true;
+                } else if (settingEnd) {
+                    if (endNode) {
+                        endNode.classList.remove('end');
+                    }
+                    cell.classList.add('end');
+                    endNode = { row, col, element: cell };
+                    settingStart = false;
+                    settingEnd = false;
+                } else {
+                    if (cell.classList.contains('wall')) {
+                        cell.classList.remove('wall');
+                    } else {
+                        cell.classList.add('wall');
+                    }
+                    isDragging = true;
+                }
+            }
+
+            function handleMouseEnter(e) {
+                if (isPathfinding || !isDragging || settingStart || settingEnd) return;
+                const cell = e.target;
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                if (cell === startNode?.element || cell === endNode?.element) return;
+                cell.classList.add('wall');
+            }
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // A* 演算法
+            function getNeighbors(node) {
+                const neighbors = [];
+                const directions = [
+                    [-1, 0], [1, 0], [0, -1], [0, 1]
+                ];
+                for (const [dr, dc] of directions) {
+                    const nr = node.row + dr;
+                    const nc = node.col + dc;
+                    if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
+                        const neighbor = grid[nr][nc];
+                        if (!neighbor.classList.contains('wall') && !neighbor.classList.contains('start') && !neighbor.classList.contains('end')) {
+                            neighbors.push({ row: nr, col: nc, element: neighbor });
+                        }
+                    }
+                }
+                return neighbors;
+            }
+
+            function manhattanDistance(a, b) {
+                return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+            }
+
+            function reconstructPath(cameFrom, current) {
+                const path = [];
+                while (cameFrom.has(current)) {
+                    current = cameFrom.get(current);
+                    if (current !== startNode) {
+                        path.push(current.element);
+                    }
+                }
+                return path.reverse();
+            }
+
+            async function aStar() {
+                if (!startNode || !endNode) return;
+                isPathfinding = true;
+                document.getElementById('findPathBtn').disabled = true;
+
+                // 重設顏色
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        const cell = grid[row][col];
+                        if (!cell.classList.contains('start') && !cell.classList.contains('end') && !cell.classList.contains('wall')) {
+                            cell.classList.remove('open', 'closed', 'path');
+                        }
+                    }
+                }
+
+                const openSet = new Set();
+                const closedSet = new Set();
+                const cameFrom = new Map();
+                const gScore = new Map();
+                const fScore = new Map();
+
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        const node = { row, col, element: grid[row][col] };
+                        const key = `${row}_${col}`;
+                        gScore.set(key, Infinity);
+                        fScore.set(key, Infinity);
+                    }
+                }
+
+                const startKey = `${startNode.row}_${startNode.col}`;
+                gScore.set(startKey, 0);
+                fScore.set(startKey, manhattanDistance(startNode, endNode));
+                openSet.add(startKey);
+
+                while (openSet.size > 0) {
+                    let current = null;
+                    let currentF = Infinity;
+                    let currentKey = null;
+                    for (const key of openSet) {
+                        if (fScore.get(key) < currentF) {
+                            currentF = fScore.get(key);
+                            currentKey = key;
+                            const [r, c] = key.split('_').map(Number);
+                            current = { row: r, col: c, element: grid[r][c] };
+                        }
+                    }
+
+                    if (current.row === endNode.row && current.col === endNode.col) {
+                        const path = reconstructPath(cameFrom, current);
+                        for (const p of path) {
+                            await new Promise(resolve => setTimeout(resolve, 10));
+                            p.classList.add('path');
+                        }
+                        isPathfinding = false;
+                        document.getElementById('findPathBtn').disabled = false;
+                        return;
+                    }
+
+                    openSet.delete(currentKey);
+                    closedSet.add(currentKey);
+                    if (!current.element.classList.contains('start') && !current.element.classList.contains('end')) {
+                        current.element.classList.add('closed');
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 10));
+
+                    const neighbors = getNeighbors(current);
+                    for (const neighbor of neighbors) {
+                        const neighborKey = `${neighbor.row}_${neighbor.col}`;
+                        if (closedSet.has(neighborKey)) continue;
+
+                        const tentativeG = gScore.get(currentKey) + 1;
+                        if (!openSet.has(neighborKey) || tentativeG < gScore.get(neighborKey)) {
+                            cameFrom.set({ row: neighbor.row, col: neighbor.col, element: neighbor.element }, current);
+                            gScore.set(neighborKey, tentativeG);
+                            fScore.set(neighborKey, tentativeG + manhattanDistance(neighbor, endNode));
+                            if (!openSet.has(neighborKey)) {
+                                openSet.add(neighborKey);
+                                if (!neighbor.element.classList.contains('start') && !neighbor.element.classList.contains('end')) {
+                                    neighbor.element.classList.add('open');
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 無法找到路徑
+                isPathfinding = false;
+                document.getElementById('findPathBtn').disabled = false;
+            }
+
+            // 重設
+            function resetGrid() {
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        const cell = grid[row][col];
+                        cell.classList.remove('start', 'end', 'wall', 'open', 'closed', 'path');
+                    }
+                }
+                startNode = null;
+                endNode = null;
+                settingStart = true;
+                settingEnd = false;
+                isPathfinding = false;
+            }
+
+            // 事件監聽
+            document.getElementById('findPathBtn').addEventListener('click', aStar);
+            document.getElementById('resetBtn').addEventListener('click', resetGrid);
+
+            // 初始化
+            createGrid();
+        </script>
+    </body>
+
+</html>
