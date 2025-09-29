@@ -1,0 +1,62 @@
+:root {
+    --board-size: 600px;
+    --grid-count: 15
+}
+
+* {
+    box-sizing: border-box;
+    font-family: Segoe UI, Roboto, "Noto Sans TC", system-ui
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background: #f5f7fb
+}
+
+h1 {
+    margin: 8px 0 12px
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px
+}
+
+.board-wrap {
+    background: #d6a97d;
+    padding: 12px;
+    border-radius: 8px
+}
+
+canvas {
+    background: #f0d9b5;
+    display: block;
+    border-radius: 4px;
+    cursor: pointer
+}
+
+#status {
+    font-weight: 600
+}
+
+.hint {
+    font-size: 12px;
+    color: #333;
+    margin-top: 8px
+}
+
+@media (max-width:640px) {
+    :root {
+        --board-size: 360px
+    }
+
+    canvas {
+        width: 360px;
+        height: 360px
+    }
+}

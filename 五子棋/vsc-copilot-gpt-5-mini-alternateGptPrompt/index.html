@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>五子棋 - 人機對戰</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>五子棋（人機對戰）</h1>
+            <div class="controls">
+                <label>難度：
+                    <select id="difficulty">
+                        <option value="1">簡單</option>
+                        <option value="2" selected>中等</option>
+                        <option value="3">困難</option>
+                    </select>
+                </label>
+                <button id="restart">重新開始</button>
+                <button id="undo">悔棋</button>
+                <div id="status" class="status">輪到你 (黑)</div>
+            </div>
+            <canvas id="board" width="600" height="600"></canvas>
+            <p class="hint">點擊棋盤下子。黑子為玩家（先手），白子為電腦。</p>
+        </div>
+        <script src="script.js"></script>
+    </body>
+
+</html>
