@@ -1,0 +1,116 @@
+/* 全局樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft JhengHei', 'Arial', sans-serif;
+    background-color: #F5E6D3;
+    /* 米黃色背景 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+}
+
+h1 {
+    color: #8B4513;
+    /* 深褐色標題 */
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+}
+
+/* 遊戲信息區域 */
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.current-player {
+    font-size: 1.2rem;
+    color: #8B4513;
+    /* 深褐色文字 */
+    font-weight: bold;
+}
+
+/* 重新開始按鈕 */
+.restart-btn {
+    background-color: #4A90E2;
+    /* 藍色背景 */
+    color: #FFFFFF;
+    /* 白色文字 */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-weight: bold;
+}
+
+.restart-btn:hover {
+    background-color: #3A7BC8;
+    /* 懸停時的深藍色 */
+}
+
+/* 棋盤容器 */
+.board-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+#game-board {
+    background-color: #DEB887;
+    /* 淺褐色棋盤 */
+    border: 3px solid #8B4513;
+    /* 深褐色邊框 */
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 遊戲訊息 */
+.game-message {
+    min-height: 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #D9534F;
+    /* 紅色，用於顯示勝利訊息 */
+    margin-top: 10px;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .game-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    #game-board {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+    }
+}

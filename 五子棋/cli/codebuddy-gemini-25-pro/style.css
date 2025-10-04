@@ -1,0 +1,44 @@
+body {
+    background-color: #F5E6D3;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    aligna_items: center;
+    margin: 0;
+}
+
+h1 {
+    color: #8B4513;
+}
+
+#gamea_info {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+#game-board-container {
+    background-color: #DEB887;
+    padding: 20px;
+    border: 2px solid #8B4513;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+#game-board {
+    cursor: pointer;
+}
+
+#restart-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1em;
+    color: #FFFFFF;
+    background-color: #4A90E2;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#restart-button:hover {
+    background-color: #357ABD;
+}

@@ -1,0 +1,167 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background-color: #F5E6D3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.game-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.game-header {
+    margin-bottom: 20px;
+}
+
+.game-header h1 {
+    color: #8B4513;
+    margin-bottom: 15px;
+    font-size: 2.5rem;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.current-turn {
+    font-size: 1.2rem;
+    color: #8B4513;
+    font-weight: bold;
+}
+
+.restart-btn {
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.restart-btn:hover {
+    background-color: #357ABD;
+}
+
+.game-board-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.game-board {
+    position: relative;
+    background-color: #DEB887;
+    border: 3px solid #8B4513;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.board-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.grid-lines {
+    stroke: #8B4513;
+    stroke-width: 2px;
+}
+
+.star-point {
+    fill: #8B4513;
+}
+
+.intersection {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    transform: translate(-50%, -50%);
+}
+
+.intersection:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.piece {
+    position: absolute;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.black-piece {
+    background: radial-gradient(circle at 30% 30%, #666, #000);
+}
+
+.white-piece {
+    background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+}
+
+.game-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    z-index: 100;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.game-message.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .game-header h1 {
+        font-size: 2rem;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .current-turn {
+        font-size: 1rem;
+    }
+    
+    .restart-btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+}

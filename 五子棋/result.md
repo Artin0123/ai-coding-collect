@@ -1,36 +1,34 @@
-cursor
-- auto: 2-下棋時棋盤會移動，可一條線放置但第四個棋子會阻擋，棋子在框線內
-- code-supernova: 4-棋子在框線內
-- grok-code-fast: 1-有嚴重延遲, 可一條線放置
+## 分數統計
+### cli
+- codebuddy-default: 15,10,20,30,15 = 90
+- codebuddy-gemini-25-pro: 20,15,20,15,10 = 80
+- codebuddy-gpt-5: 20,15,20,15,10 = 80
+- gemini-gemini-25-pro: 20,10,20,30,15 = 95
+- iflow-deepseek-v32: 20,15,20,10,15 = 80
+- iflow-glm-46: 20,15,20,25,15 = 95
+- iflow-kimi-k2-0905: 20,15,20,30,15 = 100
+- iflow-qwen3-coder: 10,10,20,25,15 = 80
+- iflow-qwen3-max: 20,15,20,25,15 = 95
 
-vsc-cline
-- code-supernova: 3-可一條線放置但第四個棋子會阻擋，棋子在框線內
-- grok-code-fast: 1-介面太醜, 可一條線放置
+### vsc
+- cline-cerebras-qwen-3-coder-480b-free: 20,15,20,20,15 = 90
+- cline-code-supernova: 15,15,20,15,15 = 80
+- cline-gemini-gemini-25-pro: 20,10,20,15,15 = 80
+- cline-grok-code-fast: 20,15,20,30,15 = 100
+- cline-openai-com-glm-46: 20,15,20,20,15 = 90
+- codebuddy-deepseek: 20,10,15,15,15 = 75
+- codebuddy-default: 20,10,20,15,15 = 80
+- copilot-gemini-gemini-25-pro: 20,10,15,15,15 = 75
 
-vsc-codebuddy
-- deepseek: 1-介面太醜, 可一條線放置
-- default: 5
+## 90 分以上
+### cli
+- codebuddy-default
+- gemini-gemini-25-pro
+- iflow-glm-46
+- iflow-kimi-k2-0905
+- iflow-qwen3-max
 
-vsc-copilot
-- claude-sonnet-4: 1-介面太醜, 可一條線放置
-- gemini: 5
-- gpt-5: 3-下棋時棋盤會移動，可一條線放置但第四個棋子會阻擋
-- gpt-5-codex: 4-介面有一點醜，棋子在框線內
-- o4-mini: 0-介面太醜，沒有電腦對手
-
-vsc-gemini
-- default: 5
-
-## cli
-iflow
-- deepseek: 2-可一條線放置
-- glm: 3-可一條線放置但第四個棋子會阻擋，棋子在框線內
-- kimi: 4-下棋時棋盤會移動
-- qwen3-coder: 2-可一條線放置
-- qwen3-max: 3-可一條線放置但第四個棋子會阻擋，棋子在框線內
-
-codebuddy
-- claude: 3-可一條線放置但第四個棋子會阻擋，棋子在框線內
-- gemini: 3-可一條線放置但第四個棋子會阻擋，棋子在框線內
-- gpt-5: 5
-
+### vsc
+- cline-cerebras-qwen-3-coder-480b-free
+- cline-grok-code-fast
+- cline-openai-com-glm-46
