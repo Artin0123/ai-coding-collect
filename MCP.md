@@ -20,7 +20,7 @@ search: 搜尋文字...
 - 記憶：codebuddy, iflow
 
 ## 需加入的MCP
-和原本程式不重複
+和原本內建的不重複，除非內建的有問題
 
 - copilot: Context7, Brave Search, Playwright Mcp
 - cline: Context7, Fetch, Brave Search, Sequential Thinking

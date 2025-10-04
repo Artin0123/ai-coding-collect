@@ -26,9 +26,19 @@
 - gemini-gemini-25-pro（平均92.5）
 - iflow-glm-46（平均92.5）
 
+### cli（比 vsc 的遞補項目更高或同分）
+- codebuddy-default（平均92.5）
+- iflow-qwen3-coder（平均90）
+- iflow-qwen3-max（平均85）
+- iflow-deepseek-v32（平均81）
+- codebuddy-gpt-5（平均77.5）
+
 ### vsc（皆前三以上）
-- cline-openai-com-glm-46（平均92.5）
+- cline-openai-com-glm-46（平均92.5，不支援圖片/瀏覽器）
 
 ### vsc（遞補）
-- cline-grok-code-fast（平均90）
+- cline-grok-code-fast（平均90，不支援圖片/瀏覽器）
 - cline-gemini-gemini-25-pro（平均87.5）
+- cline-cerebras-qwen-3-coder-480b-free（平均85，不支援圖片/瀏覽器）
+- copilot-gemini-gemini-25-pro（平均82.5）
+- cline-code-supernova（平均77.5）
