@@ -20,15 +20,14 @@
 - codebuddy-default: 20,10,20,15,15 = 80
 - copilot-gemini-gemini-25-pro: 20,10,15,15,15 = 75
 
-## 90 分以上
+## 高到低前三
 ### cli
-- codebuddy-default
+- iflow-kimi-k2-0905
 - gemini-gemini-25-pro
 - iflow-glm-46
-- iflow-kimi-k2-0905
-- iflow-qwen3-max
+- iflow-qwen3-max（並列第三）
 
 ### vsc
-- cline-cerebras-qwen-3-coder-480b-free
 - cline-grok-code-fast
+- cline-cerebras-qwen-3-coder-480b-free
 - cline-openai-com-glm-46

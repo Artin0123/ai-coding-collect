@@ -1,0 +1,129 @@
+/* 基本樣式 */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #eef2f4;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+}
+
+/* 控制面板樣式 */
+.control-panel {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.control-panel button {
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    min-width: 80px;
+}
+
+.control-panel button:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.control-panel button:disabled {
+    background-color: #6c717bff;
+    cursor: not-allowed;
+}
+
+.control-panel select {
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: white;
+    min-width: 100px;
+}
+
+/* 統計資訊樣式 */
+.stats {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.stats p {
+    margin: 5px 0;
+}
+
+.stats span {
+    font-weight: bold;
+}
+
+/* 網格容器樣式 */
+.grid-container {
+    display: flex;
+    justify-content: center;
+}
+
+#grid {
+    display: grid;
+    grid-template-columns: repeat(25, 20px);
+    grid-template-rows: repeat(25, 20px);
+    gap: 0;
+    border: 2px solid #34495e;
+    background-color: #fdfdfd;
+}
+
+/* 單元格樣式 */
+.cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    transition: background-color 0.1s ease;
+}
+
+.cell:hover {
+    filter: brightness(85%);
+}
+
+/* 動畫效果 */
+.cell.open, .cell.closed, .cell.path {
+    transition: background-color 0.15s ease;
+}
+
+/* 不同狀態的格子顏色 */
+.cell.start {
+    background-color: #4ade80;
+}
+
+.cell.end {
+    background-color: #f87171;
+}
+
+.cell.obstacle {
+    background-color: #34495e;
+}
+
+.cell.open {
+    background-color: #aed6f1;
+}
+
+.cell.closed {
+    background-color: #f5cba7;
+}
+
+.cell.path {
+    background-color: #f1c40f;
+}

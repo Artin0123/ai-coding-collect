@@ -1,0 +1,232 @@
+/* 全局樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #eef2f4;
+    color: #2c3e50;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+/* 控制面板樣式 */
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.algorithm-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.algorithm-selector label {
+    font-weight: bold;
+}
+
+.algorithm-selector select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 14px;
+}
+
+/* 按鈕樣式 */
+.btn {
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.btn:disabled {
+    background-color: #6c717bff;
+    cursor: not-allowed;
+}
+
+/* 統計面板樣式 */
+.stats-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    justify-content: space-around;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-label {
+    font-weight: bold;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #3498db;
+}
+
+.stat-unit {
+    color: #7f8c8d;
+}
+
+/* 網格容器樣式 */
+.grid-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(25, 20px);
+    grid-template-rows: repeat(25, 20px);
+    gap: 0;
+    border: 1px solid #ccc;
+}
+
+/* 網格單元格樣式 */
+.cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    background-color: #fdfdfd;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cell:hover {
+    filter: brightness(0.9);
+}
+
+/* 不同狀態的單元格顏色 */
+.cell.start {
+    background-color: #4ade80;
+}
+
+.cell.end {
+    background-color: #f87171;
+}
+
+.cell.wall {
+    background-color: #34495e;
+}
+
+.cell.open {
+    background-color: #aed6f1;
+}
+
+.cell.closed {
+    background-color: #f5cba7;
+}
+
+.cell.path {
+    background-color: #f1c40f;
+}
+
+/* 圖例樣式 */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    .button-group {
+        justify-content: center;
+    }
+
+    .algorithm-selector {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .stats-panel {
+        justify-content: center;
+    }
+
+    .grid {
+        grid-template-columns: repeat(25, 15px);
+        grid-template-rows: repeat(25, 15px);
+    }
+
+    .cell {
+        width: 15px;
+        height: 15px;
+    }
+
+    .legend {
+        justify-content: center;
+    }
+}

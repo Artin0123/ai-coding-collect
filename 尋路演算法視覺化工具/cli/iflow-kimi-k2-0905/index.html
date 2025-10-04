@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尋路演算法視覺化工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>尋路演算法視覺化工具</h1>
+        
+        <div class="controls">
+            <button id="setStart" class="control-btn">設定起點</button>
+            <button id="setEnd" class="control-btn">設定終點</button>
+            <button id="clearPath" class="control-btn">清除路徑</button>
+            <button id="reset" class="control-btn">完全重置</button>
+            
+            <select id="algorithm" class="control-select">
+                <option value="astar">A*</option>
+                <option value="dijkstra">Dijkstra</option>
+                <option value="bfs">BFS</option>
+            </select>
+            
+            <button id="startSearch" class="control-btn">開始尋路</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">已訪問節點數：<span id="visitedNodes">0</span> 個</div>
+            <div class="stat-item">路徑長度：<span id="pathLength">0</span> 步</div>
+            <div class="stat-item">執行時間：<span id="executionTime">0</span> ms</div>
+            <div class="stat-item">當前狀態：<span id="currentStatus">就緒</span></div>
+        </div>
+        
+        <div id="grid" class="grid"></div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color start"></div>
+                <span>起點</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color end"></div>
+                <span>終點</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color obstacle"></div>
+                <span>障礙物</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color open"></div>
+                <span>開放列表</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color closed"></div>
+                <span>封閉列表</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color path"></div>
+                <span>路徑</span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
