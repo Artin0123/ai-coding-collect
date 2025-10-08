@@ -1,0 +1,167 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #eef2f4;
+    /* 整體背景色 */
+}
+
+.container {
+    text-align: center;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.control-btn,
+.control-select {
+    background-color: #3498db;
+    /* 藍色 */
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.control-btn:hover:not(:disabled),
+.control-select:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.control-btn:disabled,
+.control-select:disabled {
+    background-color: #6c717bff;
+    /* 禁用狀態 */
+    cursor: not-allowed;
+}
+
+.control-select {
+    appearance: none;
+    /* 移除預設下拉箭頭 */
+    padding-right: 30px;
+    /* 為自定義箭頭留出空間 */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%01-13%205.7H18.4c-5%200-9.3-1.8-12.9-5.7-3.6-3.9-5.4-8.5-5.4-13.9%200-5.4%201.8-10%205.4-13.9L132.4%203.3c3.6-3.9%208.2-5.9%2013.9-5.9s10.3%202%2013.9%205.9l114.3%20114.3c3.6%203.9%205.4%208.5%205.4%2013.9%200%205.4-1.8%2010-5.4%2013.9z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+}
+
+.stats {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.stats p {
+    margin: 5px 0;
+}
+
+#grid-container {
+    display: grid;
+    grid-template-columns: repeat(25, 20px);
+    grid-template-rows: repeat(25, 20px);
+    border: 1px solid #ccc;
+    margin: 0 auto;
+    /* 居中顯示 */
+}
+
+.grid-cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    /* 確保邊框包含在尺寸內 */
+    background-color: #fdfdfd;
+    /* 預設背景 */
+    transition: background-color 0.1s ease;
+}
+
+/* 格子狀態顏色 */
+.start {
+    background-color: #4ade80;
+    /* 綠色 */
+}
+
+.end {
+    background-color: #f87171;
+    /* 紅色 */
+}
+
+.obstacle {
+    background-color: #34495e;
+    /* 深灰色 */
+}
+
+.open {
+    background-color: #aed6f1;
+    /* 淡藍色 */
+}
+
+.closed {
+    background-color: #f5cba7;
+    /* 淡橘色 */
+}
+
+.path {
+    background-color: #f1c40f;
+    /* 黃色 */
+}
+
+/* 懸停效果 */
+.grid-cell:hover:not(.start):not(.end):not(.obstacle) {
+    background-color: #e0e0e0;
+    /* 預設格子懸停加深 */
+}
+
+.grid-cell.start:hover {
+    background-color: #28a745;
+    /* 起點懸停加深 */
+}
+
+.grid-cell.end:hover {
+    background-color: #dc3545;
+    /* 終點懸停加深 */
+}
+
+.grid-cell.obstacle:hover {
+    background-color: #212b36;
+    /* 障礙物懸停加深 */
+}
+
+.grid-cell.open:hover {
+    background-color: #87ceeb;
+    /* 開放列表懸停加深 */
+}
+
+.grid-cell.closed:hover {
+    background-color: #f0b27a;
+    /* 封閉列表懸停加深 */
+}
+
+.grid-cell.path:hover {
+    background-color: #d4ac0d;
+    /* 路徑格子懸停加深 */
+}

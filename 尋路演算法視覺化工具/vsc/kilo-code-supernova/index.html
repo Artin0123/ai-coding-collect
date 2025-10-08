@@ -15,15 +15,17 @@
             <!-- 控制面板 -->
             <div class="control-panel">
                 <div class="button-group">
-                    <button id="setStartBtn" class="btn">設定起點</button>
-                    <button id="setEndBtn" class="btn">設定終點</button>
-                    <button id="clearPathBtn" class="btn">清除路徑</button>
-                    <button id="resetBtn" class="btn">完全重置</button>
-                    <select id="algorithmSelect" class="btn">
+                    <button id="setStartBtn" class="control-btn">設定起點</button>
+                    <button id="setEndBtn" class="control-btn">設定終點</button>
+                    <button id="clearPathBtn" class="control-btn">清除路徑</button>
+                    <button id="resetBtn" class="control-btn">完全重置</button>
+                </div>
+                <div class="algorithm-controls">
+                    <select id="algorithmSelect" class="algorithm-select">
                         <option value="astar">A*</option>
                         <option value="dijkstra">Dijkstra</option>
                     </select>
-                    <button id="startBtn" class="btn">開始尋路</button>
+                    <button id="startBtn" class="control-btn primary">開始尋路</button>
                 </div>
             </div>
 
@@ -53,7 +55,7 @@
             </div>
 
             <!-- 錯誤訊息 -->
-            <div id="errorMessage" class="error-message hidden"></div>
+            <div id="errorMessage" class="error-message"></div>
         </div>
 
         <script src="script.js"></script>

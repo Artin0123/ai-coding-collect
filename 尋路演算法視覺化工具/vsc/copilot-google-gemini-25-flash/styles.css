@@ -1,0 +1,149 @@
+:root {
+    --bg: #eef2f4;
+    --cell-bg: #fdfdfd;
+    --start: #4ade80;
+    --end: #f87171;
+    --obstacle: #34495e;
+    --open: #aed6f1;
+    --closed: #f5cba7;
+    --path: #f1c40f;
+    --grid-border: #ccc;
+    --button-bg: #3498db;
+    --button-disabled: #6c717bff;
+    --button-text: #ffffff;
+    --text: #2c3e50;
+}
+
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    font-family: Segoe UI, Roboto, "Noto Sans", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text)
+}
+
+.container {
+    max-width: 980px;
+    margin: 24px auto;
+    padding: 18px;
+    text-align: center
+}
+
+h1 {
+    margin: 0 0 12px
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px
+}
+
+.controls .left,
+.controls .middle {
+    display: flex;
+    gap: 8px;
+    align-items: center
+}
+
+button,
+select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 0;
+    background: var(--button-bg);
+    color: var(--button-text);
+    cursor: pointer
+}
+
+button:disabled,
+select:disabled {
+    background: var(--button-disabled);
+    cursor: not-allowed
+}
+
+select {
+    min-width: 120px
+}
+
+.stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text);
+    margin-bottom: 12px
+}
+
+#grid-wrapper {
+    display: flex;
+    justify-content: center
+}
+
+.grid {
+    display: grid;
+    background: var(--cell-bg);
+    padding: 4px;
+    border-radius: 6px
+}
+
+.cell {
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--grid-border);
+    box-sizing: border-box;
+    background: var(--cell-bg);
+    transition: background 120ms
+}
+
+.cell:hover {
+    filter: brightness(.92)
+}
+
+.cell.start {
+    background: var(--start)
+}
+
+.cell.end {
+    background: var(--end)
+}
+
+.cell.wall {
+    background: var(--obstacle)
+}
+
+.cell.open {
+    background: var(--open)
+}
+
+.cell.closed {
+    background: var(--closed)
+}
+
+.cell.path {
+    background: var(--path)
+}
+
+.message {
+    margin-top: 12px;
+    color: var(--text);
+    min-height: 1.2em
+}
+
+/* center grid */
+#grid {
+    margin: 12px auto
+}
+
+@media (max-width:640px) {
+    .stats {
+        flex-direction: column;
+        align-items: center
+    }
+}

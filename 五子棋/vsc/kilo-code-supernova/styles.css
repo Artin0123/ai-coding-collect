@@ -7,6 +7,7 @@
 body {
     font-family: 'Microsoft JhengHei', 'PingFang TC', 'Helvetica Neue', Arial, sans-serif;
     background-color: #F5E6D3;
+    color: #333;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,10 +17,6 @@ body {
 
 .container {
     text-align: center;
-    background-color: #F5E6D3;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     max-width: 700px;
     width: 100%;
 }
@@ -36,13 +33,13 @@ h1 {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    padding: 0 20px;
+    padding: 0 50px;
 }
 
 .current-turn {
     font-size: 1.2em;
-    color: #8B4513;
     font-weight: bold;
+    color: #8B4513;
 }
 
 #current-player {
@@ -58,11 +55,15 @@ h1 {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    font-family: inherit;
+    font-weight: bold;
 }
 
 #restart-btn:hover {
     background-color: #357ABD;
+}
+
+#restart-btn:active {
+    transform: translateY(1px);
 }
 
 .board-container {
@@ -74,16 +75,18 @@ h1 {
     margin-bottom: 20px;
 }
 
-#board {
-    border: 2px solid #8B4513;
+#game-board {
     background-color: #DEB887;
+    border: 2px solid #8B4513;
+    border-radius: 5px;
     cursor: crosshair;
+    display: block;
 }
 
 .game-status {
     font-size: 1.2em;
     font-weight: bold;
-    color: #E74C3C;
+    color: #2C3E50;
     min-height: 30px;
     margin-top: 10px;
 }
@@ -91,8 +94,7 @@ h1 {
 /* 響應式設計 */
 @media (max-width: 768px) {
     .container {
-        padding: 15px;
-        max-width: 95%;
+        padding: 10px;
     }
 
     h1 {
@@ -102,31 +104,16 @@ h1 {
     .game-info {
         flex-direction: column;
         gap: 15px;
-        padding: 0 10px;
+        padding: 0 20px;
     }
 
-    .board-container {
-        padding: 15px;
-    }
-
-    #board {
+    #game-board {
         width: 100%;
         max-width: 500px;
         height: auto;
     }
-}
 
-@media (max-width: 480px) {
-    h1 {
-        font-size: 1.8em;
-    }
-
-    .current-turn {
-        font-size: 1em;
-    }
-
-    #restart-btn {
-        padding: 8px 16px;
-        font-size: 0.9em;
+    .board-container {
+        padding: 15px;
     }
 }

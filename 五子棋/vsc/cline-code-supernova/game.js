@@ -10,18 +10,17 @@ class GomokuGame {
         // 遊戲設定
         this.BOARD_SIZE = 15;
         this.CELL_SIZE = this.canvas.width / (this.BOARD_SIZE + 1);
-        this.PIECE_RADIUS = this.CELL_SIZE * 0.4;
+        this.STONE_RADIUS = this.CELL_SIZE * 0.4;
 
         // 遊戲狀態
         this.board = this.createEmptyBoard();
-        this.currentPlayer = 1; // 1: 黑子(玩家), 2: 白子(AI)
+        this.currentPlayer = 1; // 1: 黑子（玩家）, 2: 白子（AI）
         this.gameOver = false;
         this.winner = null;
 
         // 星位位置
         this.starPoints = [
-            [3, 3], [3, 11], [7, 7], [11, 3], [11, 11],
-            [3, 7], [7, 3], [7, 11], [11, 7]
+            [3, 3], [3, 11], [7, 7], [11, 3], [11, 11]
         ];
 
         this.init();
@@ -31,7 +30,7 @@ class GomokuGame {
     init() {
         this.drawBoard();
         this.bindEvents();
-        this.updateGameInfo();
+        this.updateCurrentPlayer();
     }
 
     // 創建空棋盤
@@ -42,10 +41,6 @@ class GomokuGame {
     // 繪製棋盤
     drawBoard() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 繪製棋盤背景
-        this.ctx.fillStyle = '#DEB887';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // 繪製棋盤線條
         this.ctx.strokeStyle = '#8B4513';
@@ -80,40 +75,40 @@ class GomokuGame {
         });
 
         // 繪製棋子
-        this.drawAllPieces();
+        this.drawStones();
     }
 
-    // 繪製所有棋子
-    drawAllPieces() {
+    // 繪製棋子
+    drawStones() {
         for (let row = 0; row < this.BOARD_SIZE; row++) {
             for (let col = 0; col < this.BOARD_SIZE; col++) {
                 if (this.board[row][col] !== 0) {
-                    this.drawPiece(row, col, this.board[row][col]);
+                    this.drawStone(row, col, this.board[row][col]);
                 }
             }
         }
     }
 
     // 繪製單個棋子（包含漸層效果）
-    drawPiece(row, col, player) {
+    drawStone(row, col, player) {
         const centerX = this.CELL_SIZE * (col + 1);
         const centerY = this.CELL_SIZE * (row + 1);
 
         // 創建漸層
         const gradient = this.ctx.createRadialGradient(
-            centerX - this.PIECE_RADIUS * 0.3,
-            centerY - this.PIECE_RADIUS * 0.3,
+            centerX - this.STONE_RADIUS * 0.3,
+            centerY - this.STONE_RADIUS * 0.3,
             0,
             centerX,
             centerY,
-            this.PIECE_RADIUS
+            this.STONE_RADIUS
         );
 
         if (player === 1) {
             // 黑子漸層
-            gradient.addColorStop(0, '#8B8B8B');
-            gradient.addColorStop(0.7, '#2C2C2C');
-            gradient.addColorStop(1, '#000000');
+            gradient.addColorStop(0, '#666666');
+            gradient.addColorStop(0.7, '#333333');
+            gradient.addColorStop(1, '#111111');
         } else {
             // 白子漸層
             gradient.addColorStop(0, '#FFFFFF');
@@ -124,29 +119,30 @@ class GomokuGame {
         // 繪製棋子主體
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, this.PIECE_RADIUS, 0, 2 * Math.PI);
+        this.ctx.arc(centerX, centerY, this.STONE_RADIUS, 0, 2 * Math.PI);
         this.ctx.fill();
 
+        // 添加邊框
+        this.ctx.strokeStyle = player === 1 ? '#222222' : '#AAAAAA';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+
         // 添加高光效果
-        if (player === 1) {
-            // 黑子高光
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-            this.ctx.beginPath();
-            this.ctx.arc(
-                centerX - this.PIECE_RADIUS * 0.2,
-                centerY - this.PIECE_RADIUS * 0.2,
-                this.PIECE_RADIUS * 0.3, 0, 2 * Math.PI
+        if (player === 2) { // 白子的高光
+            const highlightGradient = this.ctx.createRadialGradient(
+                centerX - this.STONE_RADIUS * 0.2,
+                centerY - this.STONE_RADIUS * 0.2,
+                0,
+                centerX - this.STONE_RADIUS * 0.2,
+                centerY - this.STONE_RADIUS * 0.2,
+                this.STONE_RADIUS * 0.3
             );
-            this.ctx.fill();
-        } else {
-            // 白子高光
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            this.ctx.fillStyle = highlightGradient;
             this.ctx.beginPath();
-            this.ctx.arc(
-                centerX - this.PIECE_RADIUS * 0.3,
-                centerY - this.PIECE_RADIUS * 0.3,
-                this.PIECE_RADIUS * 0.4, 0, 2 * Math.PI
-            );
+            this.ctx.arc(centerX, centerY, this.STONE_RADIUS * 0.8, 0, 2 * Math.PI);
             this.ctx.fill();
         }
     }
@@ -173,7 +169,7 @@ class GomokuGame {
         }
     }
 
-    // 檢查移動是否有效
+    // 檢查是否為有效移動
     isValidMove(row, col) {
         return row >= 0 && row < this.BOARD_SIZE &&
             col >= 0 && col < this.BOARD_SIZE &&
@@ -183,79 +179,24 @@ class GomokuGame {
     // 下棋
     makeMove(row, col) {
         this.board[row][col] = this.currentPlayer;
-        this.drawPiece(row, col, this.currentPlayer);
+        this.drawStone(row, col, this.currentPlayer);
 
         if (this.checkWin(row, col)) {
             this.endGame(`恭喜！${this.currentPlayer === 1 ? '黑方' : '白方'}獲勝！`);
-        } else {
-            this.switchPlayer();
-            if (this.currentPlayer === 2) {
-                setTimeout(() => this.makeAIMove(), 500);
-            }
-        }
-    }
-
-    // 檢查勝利條件
-    checkWin(row, col) {
-        const directions = [
-            [0, 1],   // 橫向
-            [1, 0],   // 縱向
-            [1, 1],   // 斜向（右下）
-            [1, -1]   // 斜向（左下）
-        ];
-
-        for (const [dRow, dCol] of directions) {
-            if (this.countConsecutive(row, col, dRow, dCol) >= 5) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // 計算連續棋子數量
-    countConsecutive(row, col, dRow, dCol) {
-        let count = 1;
-        const player = this.board[row][col];
-
-        // 正方向
-        let r = row + dRow;
-        let c = col + dCol;
-        while (r >= 0 && r < this.BOARD_SIZE && c >= 0 && c < this.BOARD_SIZE &&
-            this.board[r][c] === player) {
-            count++;
-            r += dRow;
-            c += dCol;
+            return;
         }
 
-        // 反方向
-        r = row - dRow;
-        c = col - dCol;
-        while (r >= 0 && r < this.BOARD_SIZE && c >= 0 && c < this.BOARD_SIZE &&
-            this.board[r][c] === player) {
-            count++;
-            r -= dRow;
-            c -= dCol;
-        }
-
-        return count;
-    }
-
-    // 切換玩家
-    switchPlayer() {
         this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
-        this.updateGameInfo();
+        this.updateCurrentPlayer();
+
+        // 如果是AI的回合
+        if (this.currentPlayer === 2) {
+            setTimeout(() => this.makeAIMove(), 500);
+        }
     }
 
-    // 更新遊戲資訊
-    updateGameInfo() {
-        this.currentPlayerSpan.textContent = this.currentPlayer === 1 ? '黑方' : '白方';
-        this.currentPlayerSpan.style.color = this.currentPlayer === 1 ? '#2C3E50' : '#2C3E50';
-    }
-
-    // AI移動
+    // AI下棋
     makeAIMove() {
-        if (this.gameOver) return;
-
         const move = this.getBestMove();
         if (move) {
             this.makeMove(move.row, move.col);
@@ -264,35 +205,15 @@ class GomokuGame {
 
     // 獲取最佳移動
     getBestMove() {
-        // 1. 檢查是否可以獲勝
-        for (let row = 0; row < this.BOARD_SIZE; row++) {
-            for (let col = 0; col < this.BOARD_SIZE; col++) {
-                if (this.board[row][col] === 0) {
-                    this.board[row][col] = 2;
-                    if (this.checkWin(row, col)) {
-                        this.board[row][col] = 0;
-                        return { row, col };
-                    }
-                    this.board[row][col] = 0;
-                }
-            }
-        }
+        // 1. 檢查是否有獲勝機會
+        let winningMove = this.findWinningMove(2);
+        if (winningMove) return winningMove;
 
-        // 2. 阻擋玩家獲勝
-        for (let row = 0; row < this.BOARD_SIZE; row++) {
-            for (let col = 0; col < this.BOARD_SIZE; col++) {
-                if (this.board[row][col] === 0) {
-                    this.board[row][col] = 1;
-                    if (this.checkWin(row, col)) {
-                        this.board[row][col] = 0;
-                        return { row, col };
-                    }
-                    this.board[row][col] = 0;
-                }
-            }
-        }
+        // 2. 阻擋玩家的獲勝機會
+        let blockingMove = this.findWinningMove(1);
+        if (blockingMove) return blockingMove;
 
-        // 3. 評估所有可能移動並選擇最佳位置
+        // 3. 評估所有可能的移動
         let bestMove = null;
         let bestScore = -Infinity;
 
@@ -311,33 +232,147 @@ class GomokuGame {
         return bestMove;
     }
 
+    // 尋找獲勝移動
+    findWinningMove(player) {
+        for (let row = 0; row < this.BOARD_SIZE; row++) {
+            for (let col = 0; col < this.BOARD_SIZE; col++) {
+                if (this.board[row][col] === 0) {
+                    this.board[row][col] = player;
+                    if (this.checkWin(row, col)) {
+                        this.board[row][col] = 0;
+                        return { row, col };
+                    }
+                    this.board[row][col] = 0;
+                }
+            }
+        }
+        return null;
+    }
+
     // 評估移動分數
     evaluateMove(row, col) {
         let score = 0;
 
-        // 中心位置加分
+        // 中心位置獎勵
         const centerDistance = Math.abs(row - 7) + Math.abs(col - 7);
         score += (14 - centerDistance) * 2;
 
-        // 靠近已有棋子加分
-        for (let r = Math.max(0, row - 2); r <= Math.min(this.BOARD_SIZE - 1, row + 2); r++) {
-            for (let c = Math.max(0, col - 2); c <= Math.min(this.BOARD_SIZE - 1, col + 2); c++) {
-                if (this.board[r][c] !== 0) {
-                    const distance = Math.abs(row - r) + Math.abs(col - c);
-                    score += (3 - distance) * 5;
+        // 靠近現有棋子獎勵
+        score += this.getNeighborScore(row, col) * 3;
+
+        // 連續棋子獎勵
+        this.board[row][col] = 2;
+        score += this.getLineScore(row, col) * 5;
+        this.board[row][col] = 0;
+
+        return score;
+    }
+
+    // 獲取鄰近棋子分數
+    getNeighborScore(row, col) {
+        let score = 0;
+        for (let i = -2; i <= 2; i++) {
+            for (let j = -2; j <= 2; j++) {
+                if (i === 0 && j === 0) continue;
+                const newRow = row + i;
+                const newCol = col + j;
+                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
+                    newCol >= 0 && newCol < this.BOARD_SIZE &&
+                    this.board[newRow][newCol] !== 0) {
+                    score += 1;
                 }
             }
         }
+        return score;
+    }
 
-        // 星位加分
-        if (this.starPoints.some(([sr, sc]) => sr === row && sc === col)) {
-            score += 10;
-        }
+    // 獲取連線分數
+    getLineScore(row, col) {
+        let score = 0;
+        const directions = [
+            [0, 1], [1, 0], [1, 1], [1, -1]
+        ];
 
-        // 隨機因素
-        score += Math.random() * 20;
+        directions.forEach(([dx, dy]) => {
+            let count = 1;
+            // 正方向
+            for (let i = 1; i < 5; i++) {
+                const newRow = row + dx * i;
+                const newCol = col + dy * i;
+                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
+                    newCol >= 0 && newCol < this.BOARD_SIZE &&
+                    this.board[newRow][newCol] === 2) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            // 反方向
+            for (let i = 1; i < 5; i++) {
+                const newRow = row - dx * i;
+                const newCol = col - dy * i;
+                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
+                    newCol >= 0 && newCol < this.BOARD_SIZE &&
+                    this.board[newRow][newCol] === 2) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            score += count * count;
+        });
 
         return score;
+    }
+
+    // 檢查勝利
+    checkWin(row, col) {
+        const player = this.board[row][col];
+        const directions = [
+            [0, 1], [1, 0], [1, 1], [1, -1]
+        ];
+
+        for (const [dx, dy] of directions) {
+            let count = 1;
+
+            // 正方向檢查
+            for (let i = 1; i < 5; i++) {
+                const newRow = row + dx * i;
+                const newCol = col + dy * i;
+                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
+                    newCol >= 0 && newCol < this.BOARD_SIZE &&
+                    this.board[newRow][newCol] === player) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+
+            // 反方向檢查
+            for (let i = 1; i < 5; i++) {
+                const newRow = row - dx * i;
+                const newCol = col - dy * i;
+                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
+                    newCol >= 0 && newCol < this.BOARD_SIZE &&
+                    this.board[newRow][newCol] === player) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+
+            if (count >= 5) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 更新當前玩家顯示
+    updateCurrentPlayer() {
+        this.currentPlayerSpan.textContent = this.currentPlayer === 1 ? '黑方' : '白方';
+        this.currentPlayerSpan.style.color = this.currentPlayer === 1 ? '#2C3E50' : '#2C3E50';
     }
 
     // 結束遊戲
@@ -345,7 +380,6 @@ class GomokuGame {
         this.gameOver = true;
         this.winner = this.currentPlayer;
         this.gameStatusDiv.textContent = message;
-        this.gameStatusDiv.style.color = '#E74C3C';
     }
 
     // 重新開始遊戲
@@ -356,7 +390,7 @@ class GomokuGame {
         this.winner = null;
         this.gameStatusDiv.textContent = '';
         this.drawBoard();
-        this.updateGameInfo();
+        this.updateCurrentPlayer();
     }
 }
 

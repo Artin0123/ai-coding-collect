@@ -9,32 +9,27 @@
     </head>
 
     <body>
-        <div class="container">
-            <h1>尋路演算法視覺化工具</h1>
-
-            <div class="controls">
-                <button id="setStartBtn">設定起點</button>
-                <button id="setEndBtn">設定終點</button>
-                <button id="clearPathBtn">清除路徑</button>
-                <button id="resetBtn">完全重置</button>
-                <select id="algorithmSelect">
+        <h1>尋路演算法視覺化工具</h1>
+        <div id="container">
+            <div id="controls">
+                <button id="set-start" class="btn">設定起點</button>
+                <button id="set-end" class="btn">設定終點</button>
+                <button id="clear-path" class="btn">清除路徑</button>
+                <button id="reset" class="btn">完全重置</button>
+                <select id="algorithm" class="btn">
                     <option value="astar">A*</option>
                     <option value="dijkstra">Dijkstra</option>
-                    <option value="bfs">BFS</option>
                 </select>
-                <button id="startBtn">開始尋路</button>
+                <button id="start-search" class="btn">開始尋路</button>
             </div>
-
-            <div class="stats">
-                <div>已訪問節點數：<span id="visitedNodes">0</span> 個</div>
-                <div>路徑長度：<span id="pathLength">0</span> 步</div>
-                <div>執行時間：<span id="executionTime">0</span> ms</div>
-                <div>當前狀態：<span id="currentState">就緒</span></div>
+            <div id="stats">
+                <span id="visited-count">已訪問節點數：0 個</span>
+                <span id="path-length">路徑長度：0 步</span>
+                <span id="execution-time">執行時間：0 ms</span>
+                <span id="current-status">當前狀態：就緒</span>
             </div>
-
             <div id="grid"></div>
         </div>
-
         <script src="script.js"></script>
     </body>
 

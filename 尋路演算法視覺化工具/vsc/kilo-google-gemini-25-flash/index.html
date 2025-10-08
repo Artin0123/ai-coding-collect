@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>尋路演算法視覺化工具</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>尋路演算法視覺化工具</h1>
+            <div class="controls">
+                <button id="setStartNodeBtn" class="control-btn">設定起點</button>
+                <button id="setEndNodeBtn" class="control-btn">設定終點</button>
+                <button id="clearPathBtn" class="control-btn">清除路徑</button>
+                <button id="resetGridBtn" class="control-btn">完全重置</button>
+                <select id="algorithmSelect" class="control-select">
+                    <option value="astar">A* 演算法</option>
+                    <option value="dijkstra">Dijkstra 演算法</option>
+                </select>
+                <button id="startSearchBtn" class="control-btn">開始尋路</button>
+            </div>
+            <div class="stats">
+                <p>已訪問節點數：<span id="visitedNodes">0</span> 個</p>
+                <p>路徑長度：<span id="pathLength">0</span> 步</p>
+                <p>執行時間：<span id="executionTime">0</span> ms</p>
+                <p>當前狀態：<span id="currentState">就緒</span></p>
+            </div>
+            <div id="grid-container"></div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+
+</html>

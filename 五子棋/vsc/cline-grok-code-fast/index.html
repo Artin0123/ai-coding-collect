@@ -3,22 +3,21 @@
 
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>五子棋遊戲</title>
+        <title>五子棋</title>
         <link rel="stylesheet" href="styles.css">
-        <script src="script.js" defer></script>
     </head>
 
     <body>
-        <div class="game-container">
-            <h1>五子棋遊戲</h1>
-            <div class="turn-indicator">當前回合：黑方</div>
-            <canvas id="gosper-board" width="600" height="600"></canvas>
-            <div class="controls">
-                <button id="reset-btn">重新開始</button>
+        <h1>五子棋</h1>
+        <div id="game">
+            <canvas id="board" width="600" height="600"></canvas>
+            <div id="controls">
+                <button id="restart">重新開始</button>
+                <p id="turn">當前回合：黑方</p>
             </div>
             <div id="message"></div>
         </div>
+        <script src="script.js"></script>
     </body>
 
 </html>

@@ -1,67 +1,60 @@
 body {
-    font-family: Arial, sans-serif;
     background-color: #F5E6D3;
+    font-family: Arial, sans-serif;
+    text-align: center;
     margin: 0;
     padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-}
-
-.game-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    background-color: #FFF;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
-    color: #333;
+    color: #8B4513;
     margin-bottom: 20px;
 }
 
-.turn-indicator {
-    font-size: 18px;
-    margin-bottom: 20px;
-    color: #555;
-}
-
-canvas {
-    border: 3px solid #8B4513;
+#game {
+    display: inline-block;
     background-color: #DEB887;
-    border-radius: 5px;
-    cursor: crosshair;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-/* 棋子樣式將在JavaScript中使用Canvas繪製 */
-
-.controls {
-    margin-top: 20px;
+#board {
+    display: block;
+    margin: 0 auto;
+    background-color: #DEB887;
+    border: 2px solid #8B4513;
 }
 
-#reset-btn {
+#controls {
+    margin: 20px 0;
+}
+
+#restart {
     background-color: #4A90E2;
     color: #FFFFFF;
     border: none;
-    padding: 12px 24px;
+    padding: 10px 20px;
     font-size: 16px;
-    border-radius: 5px;
     cursor: pointer;
+    border-radius: 5px;
     transition: background-color 0.3s;
 }
 
-#reset-btn:hover {
+#restart:hover {
     background-color: #357ABD;
 }
 
-#message {
-    margin-top: 20px;
+#turn {
     font-size: 18px;
+    margin-top: 10px;
+    color: #8B4513;
+}
+
+#message {
     color: #FF0000;
+    font-size: 24px;
     font-weight: bold;
-    min-height: 24px;
+    margin-top: 10px;
+    min-height: 30px;
 }

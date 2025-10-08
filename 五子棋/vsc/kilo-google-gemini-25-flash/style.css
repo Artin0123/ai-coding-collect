@@ -1,0 +1,59 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #F5E6D3;
+    /* 米黃色 */
+    font-family: Arial, sans-serif;
+}
+
+.game-container {
+    text-align: center;
+    background-color: #DEB887;
+    /* 淺褐色 */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    color: #8B4513;
+    /* 深褐色 */
+    margin-bottom: 15px;
+}
+
+.status-display {
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    color: #8B4513;
+    /* 深褐色 */
+}
+
+#gobang-board {
+    background-color: #DEB887;
+    /* 淺褐色 */
+    border: 2px solid #8B4513;
+    /* 深褐色 */
+    display: block;
+    margin: 0 auto;
+}
+
+#restart-button {
+    background-color: #4A90E2;
+    /* 藍色 */
+    color: #FFFFFF;
+    /* 白色 */
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+#restart-button:hover {
+    background-color: #3A7BD5;
+}
