@@ -21,6 +21,8 @@ RPD >= 100
 - Mistral (API): service_tier_capacity_exceeded
 - chatanywhere (API): 輸入限制太低，需小於 4096 tokens
 
+> 目前測試 codebuddy 會限制生成內容：抱歉，我僅支援防禦性資安相關任務。（需再觀察）
+
 ## 測試項目
 - **五子棋遊戲** 
 - **尋路演算法視覺化工具**

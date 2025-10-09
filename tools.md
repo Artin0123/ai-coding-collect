@@ -12,7 +12,7 @@ search: 搜尋文字...
 - 新增和修改全域規則
 
 附加功能（若有內建就用內建的，包含可手動開啟的功能，關閉不屬於以下項目的內建功能，以下列出內建當前項目的工具）：
-- 思考 (Think Tool Server): copilot, cline
+- 思考 (Think Tool Server): copilot, cline, codebuddy
 - 建立任務待辦清單：copilot, codebuddy, iflow
 
 > 可快速開關 MCP 的工具：cline
@@ -28,6 +28,6 @@ search: 搜尋文字...
 附加功能和補充功能皆必須和原本內建的功能不重複：
 - copilot
 - cline: Context7, Playwright Mcp
+- codebuddy
 - gemini: Think Tool Server
-- codebuddy: Think Tool Server
 - iflow: Think Tool Server
