@@ -17,14 +17,14 @@
 - kilo-code-supernova: 15,15,20,15,15 = 80
 - kilo-google-gemini-25-flash: 15,15,5,0,15 = 50
 
-## 85 分以上
-### CLI
+### 前三 CLI（含同分）
 - iflow-kimi-k2-0905 (100)
 - gemini-gemini-25-pro (95)
 - iflow-glm-46 (95)
-- iflow-qwen3-max（95）
-- codebuddy-default (90)
+- iflow-qwen3-max (95)
 
-### VSC
+### 前三 VSC（含同分）
 - cline-grok-code-fast (90)
 - copilot-google-gemini-25-flash (85)
+- cline-code-supernova (80)
+- kilo-code-supernova (80)

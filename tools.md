@@ -11,33 +11,23 @@ search: 搜尋文字...
 - 執行終端機命令
 - 新增和修改全域規則
 
-附加功能（若程式有內建就用內建的，關閉其它的內建功能）：
+附加功能（若有內建就用內建的，包含可手動開啟的功能，關閉不屬於以下項目的內建功能，以下列出內建當前項目的工具）：
 - 思考 (Think Tool Server): copilot, cline
 - 建立任務待辦清單：copilot, codebuddy, iflow
 
 > 可快速開關 MCP 的工具：cline
 
-用於可快速開關 MCP 並保留狀態的程式：
+補充功能（用於可快速開關 MCP 並保留狀態的程式，以下列出不能關閉當前項目的工具）：
 - 瀏覽器控制 (Playwright Mcp)
-- 擷取網頁內容 (Fetch)
-- 網路搜尋 (Brave Search)
-- 圖片分析 (Gemini Vision)
 - Context7
 
 ## 需加入的全域規則
-提示可用的工具、查網頁前需回報勿瞎掰：
-```
-TODO
-```
-建立任務待辦清單 (cline, gemini):
-```
-TODO
-```
+[ai_instructions.md](https://gist.github.com/Artin0123/a522b6121b4169a2966fa01fc1a462d3)
 
 ## 需加入的 MCP
-附加的功能必須和原本內建的功能（包含可手動開啟的功能）不重複：
+附加功能和補充功能皆必須和原本內建的功能不重複：
 - copilot
-- cline: Context7, Fetch, Brave Search, Playwright Mcp, Gemini Vision
+- cline: Context7, Playwright Mcp
 - gemini: Think Tool Server
 - codebuddy: Think Tool Server
 - iflow: Think Tool Server
