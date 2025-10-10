@@ -1,589 +1,499 @@
-// 網格設定
-const GRID_SIZE = 25;
-const CELL_SIZE = 20;
-const ANIMATION_DELAY = 5;
+// 尋路演算法視覺化工具 JavaScript 實現
 
-// 格子類型
-const CellType = {
-    EMPTY: 'empty',
-    START: 'start',
-    END: 'end',
-    OBSTACLE: 'obstacle',
-    OPEN: 'open',
-    CLOSED: 'closed',
-    PATH: 'path'
-};
+class PathfindingVisualizer {
+    constructor() {
+        this.gridSize = 15;
+        this.cellSize = 30;
+        this.grid = [];
+        this.start = { x: 2, y: 2 };
+        this.end = { x: 12, y: 12 };
+        this.isDragging = false;
+        this.isSettingStart = false;
+        this.isSettingEnd = false;
+        this.isAnimating = false;
+        this.animationSpeed = 10; // ms
 
-// 網格狀態
-let grid = [];
-let startPos = { x: 2, y: 2 };
-let endPos = { x: 22, y: 22 };
-let isSettingStart = false;
-let isSettingEnd = false;
-let isDragging = false;
-let isAnimating = false;
-let algorithm = 'astar';
+        this.visitedCount = 0;
+        this.pathLength = 0;
+        this.executionTime = 0;
+        this.currentStatus = '就緒';
 
-// DOM元素
-let gridElement;
-let errorMessageElement;
-let statsElements = {};
-
-// 初始化函數
-function init() {
-    gridElement = document.getElementById('grid');
-    errorMessageElement = document.getElementById('errorMessage');
-
-    // 初始化統計元素
-    statsElements = {
-        visitedCount: document.getElementById('visitedCount'),
-        pathLength: document.getElementById('pathLength'),
-        executionTime: document.getElementById('executionTime'),
-        currentStatus: document.getElementById('currentStatus')
-    };
-
-    // 綁定事件監聽器
-    bindEvents();
+        this.initializeGrid();
+        this.setupEventListeners();
+        this.updateDisplay();
+    }
 
     // 初始化網格
-    createGrid();
-
-    // 更新統計資訊
-    updateStats();
-}
-
-// 創建網格
-function createGrid() {
-    gridElement.innerHTML = '';
-
-    for (let y = 0; y < GRID_SIZE; y++) {
-        grid[y] = [];
-        for (let x = 0; x < GRID_SIZE; x++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.dataset.x = x;
-            cell.dataset.y = y;
-
-            // 設定初始狀態
-            if (x === startPos.x && y === startPos.y) {
-                cell.classList.add('start');
-                grid[y][x] = CellType.START;
-            } else if (x === endPos.x && y === endPos.y) {
-                cell.classList.add('end');
-                grid[y][x] = CellType.END;
-            } else {
-                grid[y][x] = CellType.EMPTY;
+    initializeGrid() {
+        this.grid = [];
+        for (let y = 0; y < this.gridSize; y++) {
+            this.grid[y] = [];
+            for (let x = 0; x < this.gridSize; x++) {
+                this.grid[y][x] = {
+                    x,
+                    y,
+                    type: 'empty', // empty, start, end, obstacle, open, closed, path
+                    distance: Infinity,
+                    heuristic: 0,
+                    totalCost: Infinity,
+                    parent: null,
+                    visited: false
+                };
             }
+        }
 
-            gridElement.appendChild(cell);
+        // 設定預設起點和終點
+        this.grid[this.start.y][this.start.x].type = 'start';
+        this.grid[this.end.y][this.end.x].type = 'end';
+    }
+
+    // 創建網格DOM元素
+    createGrid() {
+        const gridElement = document.getElementById('grid');
+        gridElement.innerHTML = '';
+
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const cell = document.createElement('div');
+                cell.className = `cell ${this.grid[y][x].type}`;
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+
+                // 添加鼠標事件監聽器
+                cell.addEventListener('mousedown', (e) => this.handleMouseDown(e, x, y));
+                cell.addEventListener('mouseenter', (e) => this.handleMouseEnter(e, x, y));
+                cell.addEventListener('mouseup', () => this.handleMouseUp());
+                cell.addEventListener('click', () => this.handleCellClick(x, y));
+
+                gridElement.appendChild(cell);
+            }
         }
     }
-}
 
-// 綁定事件監聽器
-function bindEvents() {
-    // 網格點擊事件
-    gridElement.addEventListener('mousedown', handleGridMouseDown);
-    gridElement.addEventListener('mousemove', handleGridMouseMove);
-    gridElement.addEventListener('mouseup', handleGridMouseUp);
-    gridElement.addEventListener('contextmenu', (e) => e.preventDefault());
+    // 鼠標事件處理
+    handleMouseDown(e, x, y) {
+        if (this.isAnimating) return;
 
-    // 控制按鈕事件
-    document.getElementById('setStartBtn').addEventListener('click', () => {
-        setMode('start');
-    });
+        const cell = this.grid[y][x];
+        if (cell.type === 'start' || cell.type === 'end') return;
 
-    document.getElementById('setEndBtn').addEventListener('click', () => {
-        setMode('end');
-    });
+        this.isDragging = true;
 
-    document.getElementById('clearPathBtn').addEventListener('click', clearPath);
-    document.getElementById('resetBtn').addEventListener('click', resetGrid);
-    document.getElementById('startBtn').addEventListener('click', startPathfinding);
+        if (cell.type === 'obstacle') {
+            cell.type = 'empty';
+        } else {
+            cell.type = 'obstacle';
+        }
 
-    // 演算法選擇事件
-    document.getElementById('algorithmSelect').addEventListener('change', (e) => {
-        algorithm = e.target.value;
-    });
-}
-
-// 處理網格鼠標按下事件
-function handleGridMouseDown(e) {
-    if (isAnimating) return;
-
-    const cell = e.target;
-    if (!cell.classList.contains('cell')) return;
-
-    const x = parseInt(cell.dataset.x);
-    const y = parseInt(cell.dataset.y);
-
-    if (isSettingStart) {
-        setStartPosition(x, y);
-        return;
+        this.updateCellDisplay(x, y);
+        e.preventDefault();
     }
 
-    if (isSettingEnd) {
-        setEndPosition(x, y);
-        return;
+    handleMouseEnter(e, x, y) {
+        if (this.isAnimating || !this.isDragging) return;
+
+        const cell = this.grid[y][x];
+        if (cell.type === 'start' || cell.type === 'end') return;
+
+        if (cell.type !== 'obstacle') {
+            cell.type = 'obstacle';
+            this.updateCellDisplay(x, y);
+        }
+        e.preventDefault();
     }
 
-    isDragging = true;
-    toggleObstacle(x, y);
-}
+    handleMouseUp() {
+        this.isDragging = false;
+    }
 
-// 處理網格鼠標移動事件
-function handleGridMouseMove(e) {
-    if (isAnimating || !isDragging) return;
+    handleCellClick(x, y) {
+        if (this.isAnimating) return;
 
-    const cell = e.target;
-    if (!cell.classList.contains('cell')) return;
+        const cell = this.grid[y][x];
 
-    const x = parseInt(cell.dataset.x);
-    const y = parseInt(cell.dataset.y);
+        if (this.isSettingStart) {
+            // 清除舊的起點
+            this.grid[this.start.y][this.start.x].type = 'empty';
+            this.updateCellDisplay(this.start.x, this.start.y);
 
-    toggleObstacle(x, y);
-}
+            // 設定新的起點
+            this.start = { x, y };
+            cell.type = 'start';
+            this.updateCellDisplay(x, y);
+            this.isSettingStart = false;
+            this.updateButtonStates();
 
-// 處理網格鼠標釋放事件
-function handleGridMouseUp() {
-    isDragging = false;
-}
+        } else if (this.isSettingEnd) {
+            // 清除舊的終點
+            this.grid[this.end.y][this.end.x].type = 'empty';
+            this.updateCellDisplay(this.end.x, this.end.y);
 
-// 設定模式
-function setMode(mode) {
-    if (isAnimating) return;
+            // 設定新的終點
+            this.end = { x, y };
+            cell.type = 'end';
+            this.updateCellDisplay(x, y);
+            this.isSettingEnd = false;
+            this.updateButtonStates();
 
-    isSettingStart = mode === 'start';
-    isSettingEnd = mode === 'end';
+        } else if (cell.type !== 'start' && cell.type !== 'end') {
+            // 切換障礙物狀態
+            if (cell.type === 'obstacle') {
+                cell.type = 'empty';
+            } else {
+                cell.type = 'obstacle';
+            }
+            this.updateCellDisplay(x, y);
+        }
+    }
+
+    // 更新單元格顯示
+    updateCellDisplay(x, y) {
+        const cellElement = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+        if (cellElement) {
+            cellElement.className = `cell ${this.grid[y][x].type}`;
+        }
+    }
+
+    // 設定事件監聽器
+    setupEventListeners() {
+        // 控制面板按鈕
+        document.getElementById('setStartBtn').addEventListener('click', () => {
+            this.isSettingStart = true;
+            this.isSettingEnd = false;
+            this.updateButtonStates();
+        });
+
+        document.getElementById('setEndBtn').addEventListener('click', () => {
+            this.isSettingEnd = true;
+            this.isSettingStart = false;
+            this.updateButtonStates();
+        });
+
+        document.getElementById('clearPathBtn').addEventListener('click', () => {
+            this.clearPath();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            this.reset();
+        });
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            this.startPathfinding();
+        });
+
+        // 防止鼠標拖拽選擇文字
+        document.addEventListener('selectstart', (e) => {
+            if (e.target.classList.contains('cell')) {
+                e.preventDefault();
+            }
+        });
+    }
 
     // 更新按鈕狀態
-    document.getElementById('setStartBtn').classList.toggle('active', isSettingStart);
-    document.getElementById('setEndBtn').classList.toggle('active', isSettingEnd);
-}
+    updateButtonStates() {
+        const setStartBtn = document.getElementById('setStartBtn');
+        const setEndBtn = document.getElementById('setEndBtn');
+        const startBtn = document.getElementById('startBtn');
 
-// 設定起點位置
-function setStartPosition(x, y) {
-    // 檢查是否為終點位置
-    if (x === endPos.x && y === endPos.y) {
-        showError('無法將起點設定在終點位置');
-        return;
+        setStartBtn.disabled = this.isSettingStart || this.isAnimating;
+        setEndBtn.disabled = this.isSettingEnd || this.isAnimating;
+        startBtn.disabled = this.isAnimating;
+
+        if (this.isSettingStart) {
+            setStartBtn.style.backgroundColor = '#e74c3c';
+        } else {
+            setStartBtn.style.backgroundColor = '';
+        }
+
+        if (this.isSettingEnd) {
+            setEndBtn.style.backgroundColor = '#e74c3c';
+        } else {
+            setEndBtn.style.backgroundColor = '';
+        }
     }
 
-    // 清除舊的起點
-    clearCellType(CellType.START);
-
-    // 設定新的起點
-    startPos = { x, y };
-    grid[y][x] = CellType.START;
-
-    const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-    if (cell) {
-        cell.className = 'cell start';
-    }
-
-    isSettingStart = false;
-    document.getElementById('setStartBtn').classList.remove('active');
-}
-
-// 設定終點位置
-function setEndPosition(x, y) {
-    // 檢查是否為起點位置
-    if (x === startPos.x && y === startPos.y) {
-        showError('無法將終點設定在起點位置');
-        return;
-    }
-
-    // 清除舊的終點
-    clearCellType(CellType.END);
-
-    // 設定新的終點
-    endPos = { x, y };
-    grid[y][x] = CellType.END;
-
-    const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-    if (cell) {
-        cell.className = 'cell end';
-    }
-
-    isSettingEnd = false;
-    document.getElementById('setEndBtn').classList.remove('active');
-}
-
-// 切換障礙物狀態
-function toggleObstacle(x, y) {
-    // 檢查是否為起點或終點
-    if ((x === startPos.x && y === startPos.y) || (x === endPos.x && y === endPos.y)) {
-        return;
-    }
-
-    const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-    if (!cell) return;
-
-    if (grid[y][x] === CellType.OBSTACLE) {
-        grid[y][x] = CellType.EMPTY;
-        cell.className = 'cell';
-    } else {
-        grid[y][x] = CellType.OBSTACLE;
-        cell.className = 'cell obstacle';
-    }
-}
-
-// 清除特定類型的格子
-function clearCellType(type) {
-    for (let y = 0; y < GRID_SIZE; y++) {
-        for (let x = 0; x < GRID_SIZE; x++) {
-            if (grid[y][x] === type) {
-                grid[y][x] = CellType.EMPTY;
-                const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-                if (cell) {
-                    cell.className = 'cell';
+    // 清除路徑
+    clearPath() {
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const cell = this.grid[y][x];
+                if (cell.type === 'open' || cell.type === 'closed' || cell.type === 'path') {
+                    cell.type = 'empty';
+                    cell.distance = Infinity;
+                    cell.heuristic = 0;
+                    cell.totalCost = Infinity;
+                    cell.parent = null;
+                    cell.visited = false;
+                    this.updateCellDisplay(x, y);
                 }
             }
         }
+        this.updateStats();
     }
-}
 
-// 清除路徑
-function clearPath() {
-    if (isAnimating) return;
+    // 完全重置
+    reset() {
+        this.initializeGrid();
+        this.createGrid();
+        this.updateStats();
+        this.isSettingStart = false;
+        this.isSettingEnd = false;
+        this.updateButtonStates();
+        this.hideErrorMessage();
+    }
 
-    // 清除搜尋過程和路徑，但保留障礙物、起點和終點
-    for (let y = 0; y < GRID_SIZE; y++) {
-        for (let x = 0; x < GRID_SIZE; x++) {
-            if (grid[y][x] === CellType.OPEN || grid[y][x] === CellType.CLOSED || grid[y][x] === CellType.PATH) {
-                grid[y][x] = CellType.EMPTY;
-                const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-                if (cell && !cell.classList.contains('start') && !cell.classList.contains('end') && !cell.classList.contains('obstacle')) {
-                    cell.className = 'cell';
-                }
+    // 開始尋路
+    async startPathfinding() {
+        if (this.isAnimating) return;
+
+        const algorithm = document.getElementById('algorithmSelect').value;
+        this.clearPath();
+        this.isAnimating = true;
+        this.updateButtonStates();
+        this.updateStats('搜尋中');
+
+        const startTime = performance.now();
+
+        try {
+            let path = [];
+            if (algorithm === 'astar') {
+                path = await this.aStar();
+            } else {
+                path = await this.dijkstra();
+            }
+
+            const endTime = performance.now();
+            this.executionTime = Math.round(endTime - startTime);
+
+            if (path.length > 0) {
+                await this.animatePath(path);
+                this.updateStats('找到路徑');
+                this.showErrorMessage('');
+            } else {
+                this.updateStats('無路徑');
+                this.showErrorMessage('無法找到路徑');
+            }
+        } catch (error) {
+            console.error('尋路過程中發生錯誤:', error);
+            this.updateStats('錯誤');
+            this.showErrorMessage('尋路過程中發生錯誤');
+        }
+
+        this.isAnimating = false;
+        this.updateButtonStates();
+    }
+
+    // A* 演算法實現
+    async aStar() {
+        // 重置所有單元格狀態
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const cell = this.grid[y][x];
+                cell.distance = Infinity;
+                cell.heuristic = 0;
+                cell.totalCost = Infinity;
+                cell.parent = null;
+                cell.visited = false;
             }
         }
-    }
 
-    updateStats();
-    hideError();
-}
+        const openSet = [];
+        const startCell = this.grid[this.start.y][this.start.x];
+        const endCell = this.grid[this.end.y][this.end.x];
 
-// 重置網格
-function resetGrid() {
-    if (isAnimating) return;
+        startCell.distance = 0;
+        startCell.heuristic = this.manhattanDistance(startCell, endCell);
+        startCell.totalCost = startCell.heuristic;
 
-    startPos = { x: 2, y: 2 };
-    endPos = { x: 22, y: 22 };
-    isSettingStart = false;
-    isSettingEnd = false;
+        openSet.push(startCell);
 
-    // 重置按鈕狀態
-    document.getElementById('setStartBtn').classList.remove('active');
-    document.getElementById('setEndBtn').classList.remove('active');
+        while (openSet.length > 0) {
+            // 找到總成本最低的單元格
+            openSet.sort((a, b) => a.totalCost - b.totalCost);
+            const current = openSet.shift();
 
-    createGrid();
-    updateStats();
-    hideError();
-}
+            if (current === endCell) {
+                return this.reconstructPath(endCell);
+            }
 
-// 開始尋路
-async function startPathfinding() {
-    if (isAnimating) return;
+            current.visited = true;
+            current.type = 'closed';
+            this.visitedCount++;
 
-    isAnimating = true;
-    const startTime = Date.now();
+            // 檢查所有鄰居
+            const neighbors = this.getNeighbors(current.x, current.y);
+            for (const neighbor of neighbors) {
+                if (neighbor.visited || neighbor.type === 'obstacle') continue;
 
-    // 禁用所有按鈕
-    setButtonsDisabled(true);
+                const tentativeDistance = current.distance + 1;
+                if (tentativeDistance < neighbor.distance) {
+                    neighbor.distance = tentativeDistance;
+                    neighbor.heuristic = this.manhattanDistance(neighbor, endCell);
+                    neighbor.totalCost = neighbor.distance + neighbor.heuristic;
+                    neighbor.parent = current;
 
-    // 更新狀態
-    updateStats('搜尋中');
-
-    try {
-        let path;
-        if (algorithm === 'astar') {
-            path = await astar();
-        } else {
-            path = await dijkstra();
-        }
-
-        const endTime = Date.now();
-        const executionTime = endTime - startTime;
-
-        if (path) {
-            // 顯示路徑
-            await showPath(path);
-            updateStats('找到路徑', path.length - 1, executionTime);
-        } else {
-            updateStats('無路徑', 0, executionTime);
-            showError('無法找到路徑');
-        }
-    } catch (error) {
-        console.error('尋路過程中發生錯誤:', error);
-        showError('尋路過程中發生錯誤');
-    }
-
-    // 重新啟用按鈕
-    setButtonsDisabled(false);
-    isAnimating = false;
-}
-
-// 設定按鈕禁用狀態
-function setButtonsDisabled(disabled) {
-    const buttons = ['setStartBtn', 'setEndBtn', 'clearPathBtn', 'resetBtn', 'startBtn'];
-    buttons.forEach(id => {
-        document.getElementById(id).disabled = disabled;
-    });
-}
-
-// A* 演算法實現
-async function astar() {
-    const openSet = new PriorityQueue();
-    const closedSet = new Set();
-    const cameFrom = new Map();
-    const gScore = new Map();
-    const fScore = new Map();
-
-    // 初始化起點
-    const startKey = `${startPos.x},${startPos.y}`;
-    gScore.set(startKey, 0);
-    fScore.set(startKey, heuristic(startPos, endPos));
-    openSet.enqueue(startPos, fScore.get(startKey));
-
-    let visitedCount = 0;
-
-    while (!openSet.isEmpty()) {
-        const current = openSet.dequeue();
-        const currentKey = `${current.x},${current.y}`;
-
-        if (current.x === endPos.x && current.y === endPos.y) {
-            const path = reconstructPath(cameFrom, current);
-            statsElements.visitedCount.textContent = `${visitedCount} 個`;
-            return path;
-        }
-
-        closedSet.add(currentKey);
-        visitedCount++;
-
-        // 更新統計資訊
-        if (visitedCount % 10 === 0) {
-            statsElements.visitedCount.textContent = `${visitedCount} 個`;
-            await sleep(ANIMATION_DELAY);
-        }
-
-        // 檢查四個方向
-        const neighbors = [
-            { x: current.x - 1, y: current.y },
-            { x: current.x + 1, y: current.y },
-            { x: current.x, y: current.y - 1 },
-            { x: current.x, y: current.y + 1 }
-        ];
-
-        for (const neighbor of neighbors) {
-            if (isValidPosition(neighbor.x, neighbor.y) && grid[neighbor.y][neighbor.x] !== CellType.OBSTACLE) {
-                const neighborKey = `${neighbor.x},${neighbor.y}`;
-
-                if (closedSet.has(neighborKey)) continue;
-
-                const tentativeGScore = gScore.get(currentKey) + 1;
-
-                if (!gScore.has(neighborKey) || tentativeGScore < gScore.get(neighborKey)) {
-                    cameFrom.set(neighborKey, current);
-                    gScore.set(neighborKey, tentativeGScore);
-                    fScore.set(neighborKey, tentativeGScore + heuristic(neighbor, endPos));
-
-                    if (!openSet.contains(neighbor)) {
-                        openSet.enqueue(neighbor, fScore.get(neighborKey));
-
-                        // 視覺化開放列表
-                        if (grid[neighbor.y][neighbor.x] !== CellType.START && grid[neighbor.y][neighbor.x] !== CellType.END) {
-                            setCellType(neighbor.x, neighbor.y, CellType.OPEN);
-                        }
+                    if (!openSet.includes(neighbor)) {
+                        neighbor.type = 'open';
+                        openSet.push(neighbor);
+                        this.updateCellDisplay(neighbor.x, neighbor.y);
+                        await this.sleep(this.animationSpeed);
                     }
                 }
             }
         }
 
-        // 視覺化封閉列表
-        if (grid[current.y][current.x] !== CellType.START && grid[current.y][current.x] !== CellType.END) {
-            setCellType(current.x, current.y, CellType.CLOSED);
-        }
-
-        await sleep(ANIMATION_DELAY);
+        return [];
     }
 
-    statsElements.visitedCount.textContent = `${visitedCount} 個`;
-    return null;
-}
-
-// Dijkstra 演算法實現
-async function dijkstra() {
-    const openSet = new PriorityQueue();
-    const closedSet = new Set();
-    const cameFrom = new Map();
-    const costSoFar = new Map();
-
-    // 初始化起點
-    const startKey = `${startPos.x},${startPos.y}`;
-    costSoFar.set(startKey, 0);
-    openSet.enqueue(startPos, 0);
-
-    let visitedCount = 0;
-
-    while (!openSet.isEmpty()) {
-        const current = openSet.dequeue();
-        const currentKey = `${current.x},${current.y}`;
-
-        if (current.x === endPos.x && current.y === endPos.y) {
-            const path = reconstructPath(cameFrom, current);
-            statsElements.visitedCount.textContent = `${visitedCount} 個`;
-            return path;
+    // Dijkstra 演算法實現
+    async dijkstra() {
+        // 重置所有單元格狀態
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const cell = this.grid[y][x];
+                cell.distance = Infinity;
+                cell.parent = null;
+                cell.visited = false;
+            }
         }
 
-        closedSet.add(currentKey);
-        visitedCount++;
+        const unvisited = [];
+        const startCell = this.grid[this.start.y][this.start.x];
+        const endCell = this.grid[this.end.y][this.end.x];
 
-        // 更新統計資訊
-        if (visitedCount % 10 === 0) {
-            statsElements.visitedCount.textContent = `${visitedCount} 個`;
-            await sleep(ANIMATION_DELAY);
-        }
+        startCell.distance = 0;
+        unvisited.push(startCell);
 
-        // 檢查四個方向
-        const neighbors = [
-            { x: current.x - 1, y: current.y },
-            { x: current.x + 1, y: current.y },
-            { x: current.x, y: current.y - 1 },
-            { x: current.x, y: current.y + 1 }
-        ];
+        while (unvisited.length > 0) {
+            // 找到距離最小的單元格
+            unvisited.sort((a, b) => a.distance - b.distance);
+            const current = unvisited.shift();
 
-        for (const neighbor of neighbors) {
-            if (isValidPosition(neighbor.x, neighbor.y) && grid[neighbor.y][neighbor.x] !== CellType.OBSTACLE) {
-                const neighborKey = `${neighbor.x},${neighbor.y}`;
-                const newCost = costSoFar.get(currentKey) + 1;
+            if (current === endCell) {
+                return this.reconstructPath(endCell);
+            }
 
-                if (!costSoFar.has(neighborKey) || newCost < costSoFar.get(neighborKey)) {
-                    costSoFar.set(neighborKey, newCost);
-                    cameFrom.set(neighborKey, current);
+            current.visited = true;
+            current.type = 'closed';
+            this.visitedCount++;
 
-                    if (!closedSet.has(neighborKey)) {
-                        openSet.enqueue(neighbor, newCost);
+            // 檢查所有鄰居
+            const neighbors = this.getNeighbors(current.x, current.y);
+            for (const neighbor of neighbors) {
+                if (neighbor.visited || neighbor.type === 'obstacle') continue;
 
-                        // 視覺化開放列表
-                        if (grid[neighbor.y][neighbor.x] !== CellType.START && grid[neighbor.y][neighbor.x] !== CellType.END) {
-                            setCellType(neighbor.x, neighbor.y, CellType.OPEN);
-                        }
+                const tentativeDistance = current.distance + 1;
+                if (tentativeDistance < neighbor.distance) {
+                    neighbor.distance = tentativeDistance;
+                    neighbor.parent = current;
+
+                    if (!unvisited.includes(neighbor)) {
+                        neighbor.type = 'open';
+                        unvisited.push(neighbor);
+                        this.updateCellDisplay(neighbor.x, neighbor.y);
+                        await this.sleep(this.animationSpeed);
                     }
                 }
             }
         }
 
-        // 視覺化封閉列表
-        if (grid[current.y][current.x] !== CellType.START && grid[current.y][current.x] !== CellType.END) {
-            setCellType(current.x, current.y, CellType.CLOSED);
+        return [];
+    }
+
+    // 獲取鄰居單元格
+    getNeighbors(x, y) {
+        const neighbors = [];
+        const directions = [
+            { dx: 0, dy: -1 }, // 上
+            { dx: 1, dy: 0 },  // 右
+            { dx: 0, dy: 1 },  // 下
+            { dx: -1, dy: 0 }  // 左
+        ];
+
+        for (const dir of directions) {
+            const nx = x + dir.dx;
+            const ny = y + dir.dy;
+
+            if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize) {
+                neighbors.push(this.grid[ny][nx]);
+            }
         }
 
-        await sleep(ANIMATION_DELAY);
+        return neighbors;
     }
 
-    statsElements.visitedCount.textContent = `${visitedCount} 個`;
-    return null;
-}
-
-// 顯示路徑
-async function showPath(path) {
-    for (let i = 1; i < path.length - 1; i++) {
-        const point = path[i];
-        setCellType(point.x, point.y, CellType.PATH);
-        await sleep(ANIMATION_DELAY * 2);
-    }
-}
-
-// 設定格子類型
-function setCellType(x, y, type) {
-    const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
-    if (cell) {
-        cell.className = `cell ${type}`;
-    }
-    grid[y][x] = type;
-}
-
-// 檢查位置是否有效
-function isValidPosition(x, y) {
-    return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE;
-}
-
-// 曼哈頓距離啟發式函數
-function heuristic(a, b) {
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
-
-// 重建路徑
-function reconstructPath(cameFrom, current) {
-    const path = [current];
-    let currentKey = `${current.x},${current.y}`;
-
-    while (cameFrom.has(currentKey)) {
-        current = cameFrom.get(currentKey);
-        path.unshift(current);
-        currentKey = `${current.x},${current.y}`;
+    // 曼哈頓距離啟發式函數
+    manhattanDistance(cell1, cell2) {
+        return Math.abs(cell1.x - cell2.x) + Math.abs(cell1.y - cell2.y);
     }
 
-    return path;
-}
+    // 重建路徑
+    reconstructPath(endCell) {
+        const path = [];
+        let current = endCell;
 
-// 優先佇列實現
-class PriorityQueue {
-    constructor() {
-        this.items = [];
+        while (current !== null) {
+            path.unshift(current);
+            current = current.parent;
+        }
+
+        return path;
     }
 
-    enqueue(item, priority) {
-        this.items.push({ item, priority });
-        this.items.sort((a, b) => a.priority - b.priority);
+    // 動畫顯示最終路徑
+    async animatePath(path) {
+        this.pathLength = path.length - 1; // 減去起點
+
+        for (let i = 1; i < path.length - 1; i++) { // 不包含起點和終點
+            const cell = path[i];
+            cell.type = 'path';
+            this.updateCellDisplay(cell.x, cell.y);
+            await this.sleep(this.animationSpeed * 2);
+        }
     }
 
-    dequeue() {
-        return this.items.shift().item;
+    // 睡眠函數
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    isEmpty() {
-        return this.items.length === 0;
+    // 更新統計資訊
+    updateStats(status = null) {
+        document.getElementById('visitedCount').textContent = `${this.visitedCount} 個`;
+        document.getElementById('pathLength').textContent = `${this.pathLength} 步`;
+        document.getElementById('executionTime').textContent = `${this.executionTime} ms`;
+
+        if (status) {
+            this.currentStatus = status;
+        }
+        document.getElementById('currentStatus').textContent = this.currentStatus;
     }
 
-    contains(item) {
-        return this.items.some(queueItem =>
-            queueItem.item.x === item.x && queueItem.item.y === item.y
-        );
-    }
-}
-
-// 更新統計資訊
-function updateStats(status = '就緒', pathLength = 0, executionTime = 0) {
-    if (status) {
-        statsElements.currentStatus.textContent = status;
+    // 顯示錯誤訊息
+    showErrorMessage(message) {
+        const errorElement = document.getElementById('errorMessage');
+        if (message) {
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        } else {
+            errorElement.classList.add('hidden');
+        }
     }
 
-    if (pathLength >= 0) {
-        statsElements.pathLength.textContent = `${pathLength} 步`;
+    // 隱藏錯誤訊息
+    hideErrorMessage() {
+        document.getElementById('errorMessage').classList.add('hidden');
     }
 
-    if (executionTime > 0) {
-        statsElements.executionTime.textContent = `${executionTime} ms`;
+    // 更新顯示
+    updateDisplay() {
+        this.createGrid();
+        this.updateStats();
+        this.updateButtonStates();
     }
 }
 
-// 顯示錯誤訊息
-function showError(message) {
-    errorMessageElement.textContent = message;
-    errorMessageElement.classList.remove('hidden');
-}
-
-// 隱藏錯誤訊息
-function hideError() {
-    errorMessageElement.classList.add('hidden');
-}
-
-// 睡眠函數
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// 當頁面載入完成時初始化
-document.addEventListener('DOMContentLoaded', init);
+// 頁面載入完成後初始化
+document.addEventListener('DOMContentLoaded', () => {
+    const visualizer = new PathfindingVisualizer();
+});

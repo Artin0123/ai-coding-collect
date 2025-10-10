@@ -1,24 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
     const gridContainer = document.getElementById('grid-container');
-    const startBtn = document.getElementById('start-btn');
-    const resetBtn = document.getElementById('reset-btn');
+    const setStartBtn = document.getElementById('set-start-btn');
+    const setEndBtn = document.getElementById('set-end-btn');
     const clearPathBtn = document.getElementById('clear-path-btn');
-    const startNodeBtn = document.getElementById('start-node-btn');
-    const endNodeBtn = document.getElementById('end-node-btn');
+    const resetGridBtn = document.getElementById('reset-grid-btn');
     const algorithmSelect = document.getElementById('algorithm-select');
+    const startSearchBtn = document.getElementById('start-search-btn');
 
-    const visitedNodesSpan = document.getElementById('visited-nodes');
-    const pathLengthSpan = document.getElementById('path-length');
-    const execTimeSpan = document.getElementById('exec-time');
-    const statusSpan = document.getElementById('status');
+    const statusEl = document.getElementById('status');
+    const visitedNodesEl = document.getElementById('visited-nodes');
+    const pathLengthEl = document.getElementById('path-length');
+    const executionTimeEl = document.getElementById('execution-time');
 
-    const GRID_SIZE = 25;
+    const GRID_SIZE = 15;
     let grid = [];
     let startNode = { row: 2, col: 2 };
-    let endNode = { row: 22, col: 22 };
+    let endNode = { row: 12, col: 12 };
+
+    let settingStart = false;
+    let settingEnd = false;
     let isMouseDown = false;
-    let settingStartNode = false;
-    let settingEndNode = false;
+    let isSearching = false;
+
+    class Node {
+        constructor(row, col) {
+            this.row = row;
+            this.col = col;
+            this.isObstacle = false;
+            this.g = Infinity;
+            this.h = 0;
+            this.f = Infinity;
+            this.parent = null;
+            this.isStart = row === startNode.row && col === startNode.col;
+            this.isEnd = row === endNode.row && col === endNode.col;
+        }
+
+        get isWall() {
+            return this.isObstacle;
+        }
+    }
 
     function createGrid() {
         gridContainer.innerHTML = '';
@@ -26,458 +46,291 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let row = 0; row < GRID_SIZE; row++) {
             const currentRow = [];
             for (let col = 0; col < GRID_SIZE; col++) {
+                const node = new Node(row, col);
                 const cell = document.createElement('div');
-                cell.classList.add('grid-cell');
-                cell.dataset.row = row;
-                cell.dataset.col = col;
-                if (row === startNode.row && col === startNode.col) {
-                    cell.classList.add('start-node');
-                } else if (row === endNode.row && col === endNode.col) {
-                    cell.classList.add('end-node');
-                }
+                cell.id = `node-${row}-${col}`;
+                cell.className = 'grid-cell';
+                if (node.isStart) cell.classList.add('start');
+                if (node.isEnd) cell.classList.add('end');
+
+                cell.addEventListener('mousedown', () => handleMouseDown(row, col));
+                cell.addEventListener('mouseenter', () => handleMouseEnter(row, col));
+                cell.addEventListener('mouseup', () => handleMouseUp());
+                cell.addEventListener('click', () => handleClick(row, col));
+
                 gridContainer.appendChild(cell);
-                currentRow.push({ element: cell, isWall: false });
+                currentRow.push(node);
             }
             grid.push(currentRow);
         }
     }
 
-    function handleCellClick(e) {
-        const cell = e.target;
-        if (!cell.classList.contains('grid-cell')) return;
-
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-
-        if (settingStartNode) {
-            const oldStart = grid[startNode.row][startNode.col].element;
-            oldStart.classList.remove('start-node');
-            startNode = { row, col };
-            cell.classList.add('start-node');
-            settingStartNode = false;
-        } else if (settingEndNode) {
-            const oldEnd = grid[endNode.row][endNode.col].element;
-            oldEnd.classList.remove('end-node');
-            endNode = { row, col };
-            cell.classList.add('end-node');
-            settingEndNode = false;
-        } else if (!(row === startNode.row && col === startNode.col) && !(row === endNode.row && col === endNode.col)) {
-            grid[row][col].isWall = !grid[row][col].isWall;
-            cell.classList.toggle('wall-node');
-        }
+    function handleMouseDown(row, col) {
+        if (isSearching) return;
+        isMouseDown = true;
+        toggleObstacle(row, col);
     }
 
-    function handleMouseDown(e) {
-        isMouseDown = true;
-        handleCellInteraction(e);
+    function handleMouseEnter(row, col) {
+        if (isSearching || !isMouseDown) return;
+        toggleObstacle(row, col);
     }
 
     function handleMouseUp() {
         isMouseDown = false;
     }
+    
+    function handleClick(row, col) {
+        if (isSearching) return;
+        const node = grid[row][col];
+        if (settingStart) {
+            if(node.isEnd || node.isObstacle) return;
+            const prevStartNode = grid[startNode.row][startNode.col];
+            prevStartNode.isStart = false;
+            document.getElementById(`node-${startNode.row}-${startNode.col}`).classList.remove('start');
+            
+            startNode = { row, col };
+            node.isStart = true;
+            document.getElementById(`node-${row}-${col}`).classList.add('start');
+            settingStart = false;
+            setStartBtn.style.backgroundColor = '#3498db';
 
-    function handleMouseOver(e) {
-        if (isMouseDown) {
-            handleCellInteraction(e);
+        } else if (settingEnd) {
+            if(node.isStart || node.isObstacle) return;
+            const prevEndNode = grid[endNode.row][endNode.col];
+            prevEndNode.isEnd = false;
+            document.getElementById(`node-${endNode.row}-${endNode.col}`).classList.remove('end');
+            
+            endNode = { row, col };
+            node.isEnd = true;
+            document.getElementById(`node-${row}-${col}`).classList.add('end');
+            settingEnd = false;
+            setEndBtn.style.backgroundColor = '#3498db';
         }
     }
 
-    function handleCellInteraction(e) {
-        const cell = e.target;
-        if (!cell.classList.contains('grid-cell')) return;
-
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-
-        if (!(row === startNode.row && col === startNode.col) && !(row === endNode.row && col === endNode.col)) {
-            if (!grid[row][col].isWall) {
-                grid[row][col].isWall = true;
-                cell.classList.add('wall-node');
-            }
-        }
+    function toggleObstacle(row, col) {
+        const node = grid[row][col];
+        if (node.isStart || node.isEnd) return;
+        node.isObstacle = !node.isObstacle;
+        document.getElementById(`node-${row}-${col}`).classList.toggle('obstacle', node.isObstacle);
     }
 
-    function resetGrid() {
-        startNode = { row: 2, col: 2 };
-        endNode = { row: 22, col: 22 };
-        createGrid();
-        clearStats();
-    }
+    setStartBtn.addEventListener('click', () => {
+        settingStart = !settingStart;
+        settingEnd = false;
+        setStartBtn.style.backgroundColor = settingStart ? '#2980b9' : '#3498db';
+        setEndBtn.style.backgroundColor = '#3498db';
+    });
+
+    setEndBtn.addEventListener('click', () => {
+        settingEnd = !settingEnd;
+        settingStart = false;
+        setEndBtn.style.backgroundColor = settingEnd ? '#2980b9' : '#3498db';
+        setStartBtn.style.backgroundColor = '#3498db';
+    });
+
+    clearPathBtn.addEventListener('click', clearPath);
+    resetGridBtn.addEventListener('click', resetGrid);
+    startSearchBtn.addEventListener('click', startSearch);
 
     function clearPath() {
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE; col++) {
-                const cell = grid[row][col].element;
-                if (!cell.classList.contains('start-node') && !cell.classList.contains('end-node') && !cell.classList.contains('wall-node')) {
-                    cell.className = 'grid-cell';
-                }
+                const cell = document.getElementById(`node-${row}-${col}`);
+                cell.classList.remove('open', 'closed', 'path');
             }
         }
-        clearStats();
+        updateStats({ visited: 0, pathLength: 0, time: 0, status: '就緒' });
     }
 
-    function clearStats(){
-        visitedNodesSpan.textContent = '0';
-        pathLengthSpan.textContent = '0';
-        execTimeSpan.textContent = '0';
-        statusSpan.textContent = 'Ready';
+    function resetGrid() {
+        startNode = { row: 2, col: 2 };
+        endNode = { row: 12, col: 12 };
+        createGrid();
+        updateStats({ visited: 0, pathLength: 0, time: 0, status: '就緒' });
     }
 
-    async function startPathfinding() {
-        disableControls();
+    function setControlsEnabled(enabled) {
+        isSearching = !enabled;
+        setStartBtn.disabled = !enabled;
+        setEndBtn.disabled = !enabled;
+        clearPathBtn.disabled = !enabled;
+        resetGridBtn.disabled = !enabled;
+        algorithmSelect.disabled = !enabled;
+        startSearchBtn.disabled = !enabled;
+    }
+
+    function updateStats({ visited, pathLength, time, status }) {
+        statusEl.textContent = status;
+        visitedNodesEl.textContent = visited;
+        pathLengthEl.textContent = pathLength;
+        executionTimeEl.textContent = time;
+    }
+
+    async function startSearch() {
         clearPath();
-        const algorithm = algorithmSelect.value;
+        setControlsEnabled(false);
+        updateStats({ visited: 0, pathLength: 0, time: 0, status: '搜尋中...' });
         const startTime = performance.now();
-        statusSpan.textContent = 'Searching...';
 
-        let result;
-        switch (algorithm) {
-            case 'a-star':
-                result = await aStar();
-                break;
-            case 'dijkstra':
-                result = await dijkstra();
-                break;
-            case 'bfs':
-                result = await bfs();
-                break;
-        }
+        const start = grid[startNode.row][startNode.col];
+        const end = grid[endNode.row][endNode.col];
+        const algorithm = algorithmSelect.value === 'astar' ? astar : dijkstra;
 
+        const result = await algorithm(start, end);
+        
         const endTime = performance.now();
-        execTimeSpan.textContent = (endTime - startTime).toFixed(2);
+        const executionTime = (endTime - startTime).toFixed(2);
 
-        if (result && result.path.length > 0) {
-            pathLengthSpan.textContent = result.path.length;
-            visitedNodesSpan.textContent = result.visitedCount;
-            statusSpan.textContent = 'Path Found!';
-            await animatePath(result.path);
+        if (result.path) {
+            updateStats({
+                visited: result.visitedCount,
+                pathLength: result.path.length,
+                time: executionTime,
+                status: '找到路徑'
+            });
+            await visualizePath(result.path);
         } else {
-            statusSpan.textContent = 'No Path Found';
-            visitedNodesSpan.textContent = result ? result.visitedCount : 0;
+            updateStats({
+                visited: result.visitedCount,
+                pathLength: 0,
+                time: executionTime,
+                status: '無路徑'
+            });
         }
-        enableControls();
+
+        setControlsEnabled(true);
     }
 
-    function disableControls() {
-        startBtn.disabled = true;
-        resetBtn.disabled = true;
-        clearPathBtn.disabled = true;
-        startNodeBtn.disabled = true;
-        endNodeBtn.disabled = true;
-        algorithmSelect.disabled = true;
-    }
-
-    function enableControls() {
-        startBtn.disabled = false;
-        resetBtn.disabled = false;
-        clearPathBtn.disabled = false;
-        startNodeBtn.disabled = false;
-        endNodeBtn.disabled = false;
-        algorithmSelect.disabled = false;
-    }
-
-    function getNeighbors(row, col) {
+    function getNeighbors(node) {
         const neighbors = [];
-        if (row > 0) neighbors.push({ row: row - 1, col });
-        if (row < GRID_SIZE - 1) neighbors.push({ row: row + 1, col });
-        if (col > 0) neighbors.push({ row, col: col - 1 });
-        if (col < GRID_SIZE - 1) neighbors.push({ row, col: col + 1 });
-        return neighbors;
-    }
-
-    async function animate(nodes, className) {
-        for (let i = 0; i < nodes.length; i++) {
-            const node = nodes[i];
-            if ((node.row !== startNode.row || node.col !== startNode.col) && (node.row !== endNode.row || node.col !== endNode.col)) {
-                grid[node.row][node.col].element.classList.add(className);
-            }
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-    }
-
-    async function animatePath(path) {
-        for (let i = path.length - 2; i > 0; i--) {
-            const node = path[i];
-            grid[node.row][node.col].element.classList.remove('closed-node', 'open-node');
-            grid[node.row][node.col].element.classList.add('path-node');
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-    }
-
-    // Algorithms
-    async function aStar() {
-        const openSet = new Heap((a, b) => a.f - b.f);
-        const nodes = createNodeGrid();
-        const start = nodes[startNode.row][startNode.col];
-        const end = nodes[endNode.row][endNode.col];
-        let visitedCount = 0;
-
-        start.g = 0;
-        start.f = manhattanDistance(start, end);
-        openSet.push(start);
-
-        const visitedInOrder = [];
-
-        while (!openSet.isEmpty()) {
-            const currentNode = openSet.pop();
-            visitedCount++;
-            visitedInOrder.push(currentNode);
-
-            if(currentNode !== start && currentNode !== end) {
-                grid[currentNode.row][currentNode.col].element.classList.add('closed-node');
-            }
-
-            if (currentNode === end) {
-                return { path: reconstructPath(end), visitedCount };
-            }
-
-            const neighbors = getNeighbors(currentNode.row, currentNode.col);
-
-            for (const neighborCoords of neighbors) {
-                const neighbor = nodes[neighborCoords.row][neighborCoords.col];
-                if (neighbor.isWall || neighbor.isClosed) continue;
-
-                const tentativeG = currentNode.g + 1;
-
-                if (tentativeG < neighbor.g) {
-                    neighbor.previous = currentNode;
-                    neighbor.g = tentativeG;
-                    neighbor.f = neighbor.g + manhattanDistance(neighbor, end);
-                    if (!openSet.contains(neighbor)) {
-                        openSet.push(neighbor);
-                        if(neighbor !== end){
-                            grid[neighbor.row][neighbor.col].element.classList.add('open-node');
-                        }
-                    }
-                }
-            }
-             await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        return { path: [], visitedCount };
-    }
-
-    async function dijkstra() {
-        const nodes = createNodeGrid();
-        const start = nodes[startNode.row][startNode.col];
-        const end = nodes[endNode.row][endNode.col];
-        const unvisited = new Heap((a,b) => a.g - b.g);
-        let visitedCount = 0;
-
-        for(let row of nodes) {
-            for(let node of row) {
-                unvisited.push(node);
-            }
-        }
-
-        start.g = 0;
-        unvisited.updateItem(start);
-
-        const visitedInOrder = [];
-
-        while(!unvisited.isEmpty()){
-            const currentNode = unvisited.pop();
-            if(currentNode.isWall) continue;
-            if(currentNode.g === Infinity) return { path: [], visitedCount };
-            
-            visitedCount++;
-            currentNode.isClosed = true;
-            visitedInOrder.push(currentNode);
-
-            if(currentNode !== start && currentNode !== end) {
-                grid[currentNode.row][currentNode.col].element.classList.add('closed-node');
-            }
-
-            if(currentNode === end) return { path: reconstructPath(end), visitedCount };
-
-            const neighbors = getNeighbors(currentNode.row, currentNode.col);
-
-            for (const neighborCoords of neighbors) {
-                const neighbor = nodes[neighborCoords.row][neighborCoords.col];
-                if(!neighbor.isClosed){
-                    const newDist = currentNode.g + 1;
-                    if(newDist < neighbor.g){
-                        neighbor.g = newDist;
-                        neighbor.previous = currentNode;
-                        unvisited.updateItem(neighbor);
-                        if(neighbor !== end){
-                            grid[neighbor.row][neighbor.col].element.classList.add('open-node');
-                        }
-                    }
-                }
-            }
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-
-        return { path: [], visitedCount };
-    }
-
-    async function bfs() {
-        const nodes = createNodeGrid();
-        const start = nodes[startNode.row][startNode.col];
-        const end = nodes[endNode.row][endNode.col];
-        const queue = [start];
-        start.isClosed = true;
-        let visitedCount = 0;
-
-        const visitedInOrder = [];
-
-        while (queue.length > 0) {
-            const currentNode = queue.shift();
-            visitedCount++;
-            visitedInOrder.push(currentNode);
-
-            if(currentNode !== start && currentNode !== end) {
-                grid[currentNode.row][currentNode.col].element.classList.add('closed-node');
-            }
-
-            if (currentNode === end) {
-                return { path: reconstructPath(end), visitedCount };
-            }
-
-            const neighbors = getNeighbors(currentNode.row, currentNode.col);
-
-            for (const neighborCoords of neighbors) {
-                const neighbor = nodes[neighborCoords.row][neighborCoords.col];
-                if (!neighbor.isWall && !neighbor.isClosed) {
-                    neighbor.isClosed = true;
-                    neighbor.previous = currentNode;
-                    queue.push(neighbor);
-                     if(neighbor !== end){
-                        grid[neighbor.row][neighbor.col].element.classList.add('open-node');
-                    }
-                }
-            }
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-
-        return { path: [], visitedCount };
-    }
-
-    function createNodeGrid() {
-        const nodeGrid = [];
-        for (let row = 0; row < GRID_SIZE; row++) {
-            const currentRow = [];
-            for (let col = 0; col < GRID_SIZE; col++) {
-                currentRow.push({
-                    row,
-                    col,
-                    isWall: grid[row][col].isWall,
-                    g: Infinity,
-                    f: Infinity,
-                    h: 0,
-                    previous: null,
-                    isClosed: false
-                });
-            }
-            nodeGrid.push(currentRow);
-        }
-        return nodeGrid;
+        const { row, col } = node;
+        if (row > 0) neighbors.push(grid[row - 1][col]);
+        if (row < GRID_SIZE - 1) neighbors.push(grid[row + 1][col]);
+        if (col > 0) neighbors.push(grid[row][col - 1]);
+        if (col < GRID_SIZE - 1) neighbors.push(grid[row][col + 1]);
+        return neighbors.filter(neighbor => !neighbor.isObstacle);
     }
 
     function manhattanDistance(nodeA, nodeB) {
         return Math.abs(nodeA.row - nodeB.row) + Math.abs(nodeA.col - nodeB.col);
     }
 
+    async function astar(startNode, endNode) {
+        let openSet = [startNode];
+        let visitedCount = 0;
+
+        for (let row of grid) {
+            for (let node of row) {
+                node.g = Infinity;
+                node.f = Infinity;
+                node.parent = null;
+            }
+        }
+
+        startNode.g = 0;
+        startNode.f = manhattanDistance(startNode, endNode);
+
+        while (openSet.length > 0) {
+            openSet.sort((a, b) => a.f - b.f);
+            let currentNode = openSet.shift();
+            visitedCount++;
+
+            if (currentNode === endNode) {
+                return { path: reconstructPath(endNode), visitedCount };
+            }
+            
+            if (!currentNode.isStart && !currentNode.isEnd) {
+                document.getElementById(`node-${currentNode.row}-${currentNode.col}`).classList.add('closed');
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+
+            for (let neighbor of getNeighbors(currentNode)) {
+                let tentativeG = currentNode.g + 1;
+
+                if (tentativeG < neighbor.g) {
+                    neighbor.parent = currentNode;
+                    neighbor.g = tentativeG;
+                    neighbor.h = manhattanDistance(neighbor, endNode);
+                    neighbor.f = neighbor.g + neighbor.h;
+                    if (!openSet.includes(neighbor)) {
+                        openSet.push(neighbor);
+                        if(!neighbor.isEnd)
+                            document.getElementById(`node-${neighbor.row}-${neighbor.col}`).classList.add('open');
+                    }
+                }
+            }
+        }
+        return { path: null, visitedCount };
+    }
+
+    async function dijkstra(startNode, endNode) {
+        let openSet = [startNode];
+        let visitedCount = 0;
+
+        for (let row of grid) {
+            for (let node of row) {
+                node.g = Infinity;
+                node.parent = null;
+            }
+        }
+        startNode.g = 0;
+
+        while (openSet.length > 0) {
+            openSet.sort((a, b) => a.g - b.g);
+            let currentNode = openSet.shift();
+            visitedCount++;
+            
+            if(currentNode.isObstacle) continue;
+
+            if (currentNode === endNode) {
+                return { path: reconstructPath(endNode), visitedCount };
+            }
+            
+            if (!currentNode.isStart && !currentNode.isEnd) {
+                 document.getElementById(`node-${currentNode.row}-${currentNode.col}`).classList.add('closed');
+                 await new Promise(resolve => setTimeout(resolve, 10));
+            }
+
+
+            for (let neighbor of getNeighbors(currentNode)) {
+                let newG = currentNode.g + 1;
+                if(newG < neighbor.g){
+                    neighbor.g = newG;
+                    neighbor.parent = currentNode;
+                    if (!openSet.includes(neighbor)) {
+                        openSet.push(neighbor);
+                         if(!neighbor.isEnd)
+                            document.getElementById(`node-${neighbor.row}-${neighbor.col}`).classList.add('open');
+                    }
+                }
+            }
+        }
+
+        return { path: null, visitedCount };
+    }
+
     function reconstructPath(endNode) {
         const path = [];
         let currentNode = endNode;
         while (currentNode !== null) {
-            path.push(currentNode);
-            currentNode = currentNode.previous;
+            path.unshift(currentNode);
+            currentNode = currentNode.parent;
         }
         return path;
     }
 
-    // Heap implementation for A* and Dijkstra
-    class Heap {
-        constructor(comparator) {
-            this.comparator = comparator;
-            this.array = [];
-        }
-        push(val) {
-            this.array.push(val);
-            this.bubbleUp();
-        }
-        pop() {
-            const max = this.array[0];
-            const end = this.array.pop();
-            if (this.array.length > 0) {
-                this.array[0] = end;
-                this.sinkDown(0);
-            }
-            return max;
-        }
-        isEmpty() {
-            return this.array.length === 0;
-        }
-        contains(node){
-            return this.array.includes(node);
-        }
-        updateItem(item) {
-            const itemIndex = this.array.indexOf(item);
-            if (itemIndex !== -1) {
-                this.bubbleUp(itemIndex);
-            }
-        }
-        bubbleUp(index = this.array.length - 1) {
-            const element = this.array[index];
-            while (index > 0) {
-                const parentIndex = Math.floor((index - 1) / 2);
-                const parent = this.array[parentIndex];
-                if (this.comparator(element, parent) >= 0) break;
-                this.array[index] = parent;
-                this.array[parentIndex] = element;
-                index = parentIndex;
-            }
-        }
-        sinkDown(index) {
-            const length = this.array.length;
-            const element = this.array[index];
-            while (true) {
-                const leftChildIdx = 2 * index + 1;
-                const rightChildIdx = 2 * index + 2;
-                let leftChild, rightChild;
-                let swap = null;
-                if (leftChildIdx < length) {
-                    leftChild = this.array[leftChildIdx];
-                    if (this.comparator(leftChild, element) < 0) {
-                        swap = leftChildIdx;
-                    }
-                }
-                if (rightChildIdx < length) {
-                    rightChild = this.array[rightChildIdx];
-                    if (
-                        (swap === null && this.comparator(rightChild, element) < 0) ||
-                        (swap !== null && this.comparator(rightChild, leftChild) < 0)
-                    ) {
-                        swap = rightChildIdx;
-                    }
-                }
-                if (swap === null) break;
-                this.array[index] = this.array[swap];
-                this.array[swap] = element;
-                index = swap;
+    async function visualizePath(path) {
+        for (let i = 0; i < path.length; i++) {
+            const node = path[i];
+            if (!node.isStart && !node.isEnd) {
+                document.getElementById(`node-${node.row}-${node.col}`).classList.add('path');
+                await new Promise(resolve => setTimeout(resolve, 10));
             }
         }
     }
-
-    // Event Listeners
-    gridContainer.addEventListener('mousedown', handleMouseDown);
-    gridContainer.addEventListener('mouseup', handleMouseUp);
-    gridContainer.addEventListener('mouseover', handleMouseOver);
-    gridContainer.addEventListener('click', handleCellClick);
-
-    startBtn.addEventListener('click', startPathfinding);
-    resetBtn.addEventListener('click', resetGrid);
-    clearPathBtn.addEventListener('click', clearPath);
-    startNodeBtn.addEventListener('click', () => { 
-        settingStartNode = true; 
-        settingEndNode = false; 
-    });
-    endNodeBtn.addEventListener('click', () => { 
-        settingEndNode = true; 
-        settingStartNode = false; 
-    });
 
     createGrid();
 });

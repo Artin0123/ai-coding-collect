@@ -10,30 +10,27 @@
     <div class="container">
         <h1>尋路演算法視覺化工具</h1>
         
-        <div class="controls">
+        <div class="control-panel">
             <button id="setStartBtn" class="btn">設定起點</button>
             <button id="setEndBtn" class="btn">設定終點</button>
             <button id="clearPathBtn" class="btn">清除路徑</button>
             <button id="resetBtn" class="btn">完全重置</button>
-            
             <select id="algorithmSelect" class="select">
                 <option value="astar">A*</option>
                 <option value="dijkstra">Dijkstra</option>
-                <option value="bfs">BFS</option>
             </select>
-            
             <button id="startBtn" class="btn">開始尋路</button>
-        </div>
-        
-        <div class="stats">
-            <span>已訪問節點數：<span id="visitedNodes">0</span> 個</span>
-            <span>路徑長度：<span id="pathLength">0</span> 步</span>
-            <span>執行時間：<span id="executionTime">0</span> ms</span>
-            <span>當前狀態：<span id="currentStatus">就緒</span></span>
         </div>
         
         <div class="grid-container">
             <div id="grid" class="grid"></div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">已訪問節點數：<span id="visitedNodes">0</span> 個</div>
+            <div class="stat-item">路徑長度：<span id="pathLength">0</span> 步</div>
+            <div class="stat-item">執行時間：<span id="executionTime">0</span> ms</div>
+            <div class="stat-item">當前狀態：<span id="currentStatus">就緒</span></div>
         </div>
     </div>
     

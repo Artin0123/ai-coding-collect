@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋 - 人機對戰</title>
+    <style>
+        body {
+            background-color: #F5E6D3; /* 米黃色 */
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #game-container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #board-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        #board {
+            background-color: #DEB887; /* 淺褐色 */
+            border: 2px solid #8B4513; /* 深褐色 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        #restart-btn {
+            background-color: #4A90E2; /* 按鈕背景色 */
+            color: #FFFFFF; /* 按鈕文字色 */
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+
+        #restart-btn:hover {
+            background-color: #3a7bc8;
+        }
+
+        #win-message {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            color: #2e7d32;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>五子棋 - 人機對戰</h1>
+        
+        <div id="status">當前回合: 黑方</div>
+        
+        <div id="board-container">
+            <canvas id="board" width="600" height="600"></canvas>
+        </div>
+        
+        <button id="restart-btn">重新開始</button>
+        
+        <div id="win-message" class="hidden">恭喜! 黑方獲勝!</div>
+    </div>
+
+    <script>
+        // Game constants
+        const BOARD_SIZE = 15;
+        const CELL_SIZE = 40; // Size of each cell in pixels
+        const STONE_RADIUS = 18; // Radius of stones
+        const OFFSET = 20; // Offset from the edge for the board
+        
+        // Game state
+        let board = [];
+        let currentPlayer = 1; // 1 for black, 2 for white
+        let gameOver = false;
+        let gameStarted = false;
+        
+        // Canvas elements
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const statusDisplay = document.getElementById('status');
+        const restartBtn = document.getElementById('restart-btn');
+        const winMessage = document.getElementById('win-message');
+        
+        // Initialize the game board
+        function initBoard() {
+            board = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                board[i] = new Array(BOARD_SIZE).fill(0);
+            }
+            currentPlayer = 1; // Black starts
+            gameOver = false;
+            gameStarted = true;
+            winMessage.classList.add('hidden');
+            statusDisplay.textContent = '當前回合: 黑方';
+        }
+        
+        // Draw the game board
+        function drawBoard() {
+            // Draw background
+            ctx.fillStyle = '#DEB887'; // 淺褐色
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#8B4513'; // 深褐色
+            ctx.lineWidth = 2;
+            
+            // Vertical lines
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(OFFSET + i * CELL_SIZE, OFFSET);
+                ctx.lineTo(OFFSET + i * CELL_SIZE, OFFSET + (BOARD_SIZE - 1) * CELL_SIZE);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(OFFSET, OFFSET + i * CELL_SIZE);
+                ctx.lineTo(OFFSET + (BOARD_SIZE - 1) * CELL_SIZE, OFFSET + i * CELL_SIZE);
+                ctx.stroke();
+            }
+            
+            // Draw star points (天元, 四隅)
+            const starPoints = [
+                {row: 7, col: 7},  // Center (天元)
+                {row: 3, col: 3},  // Top-left
+                {row: 3, col: 11}, // Top-right
+                {row: 11, col: 3}, // Bottom-left
+                {row: 11, col: 11} // Bottom-right
+            ];
+            
+            ctx.fillStyle = '#8B4513'; // 深褐色 for star points
+            starPoints.forEach(point => {
+                const x = OFFSET + point.col * CELL_SIZE;
+                const y = OFFSET + point.row * CELL_SIZE;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        // Draw a stone at the specified position
+        function drawStone(row, col, player) {
+            const x = OFFSET + col * CELL_SIZE;
+            const y = OFFSET + row * CELL_SIZE;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, STONE_RADIUS, 0, Math.PI * 2);
+            
+            // Create gradient for stone
+            const gradient = ctx.createRadialGradient(
+                x - STONE_RADIUS/3, y - STONE_RADIUS/3, 1,
+                x, y, STONE_RADIUS
+            );
+            
+            if (player === 1) { // Black stone
+                gradient.addColorStop(0, '#666');
+                gradient.addColorStop(1, '#000');
+            } else { // White stone
+                gradient.addColorStop(0, '#fff');
+                gradient.addColorStop(1, '#ccc');
+            }
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Add border to stones
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        
+        // Check if a move is valid
+        function isValidMove(row, col) {
+            return row >= 0 && row < BOARD_SIZE && 
+                   col >= 0 && col < BOARD_SIZE && 
+                   board[row][col] === 0;
+        }
+        
+        // Place a stone on the board
+        function placeStone(row, col) {
+            if (!isValidMove(row, col) || gameOver) return false;
+            
+            board[row][col] = currentPlayer;
+            drawStone(row, col, currentPlayer);
+            
+            // Check for win
+            if (checkWin(row, col)) {
+                gameOver = true;
+                const winner = currentPlayer === 1 ? '黑方' : '白方';
+                winMessage.textContent = `恭喜! ${winner}獲勝!`;
+                winMessage.classList.remove('hidden');
+                statusDisplay.textContent = `遊戲結束 - ${winner}獲勝!`;
+                return true;
+            }
+            
+            // Switch player
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusDisplay.textContent = `當前回合: ${currentPlayer === 1 ? '黑方' : '白方'}`;
+            
+            return true;
+        }
+        
+        // Check for win condition
+        function checkWin(row, col) {
+            const player = board[row][col];
+            if (player === 0) return false;
+            
+            // Directions: horizontal, vertical, diagonal (/), diagonal (\)
+            const directions = [
+                [0, 1],  // horizontal
+                [1, 0],  // vertical
+                [1, 1],  // diagonal \
+                [1, -1]  // diagonal /
+            ];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1; // Count the current stone
+                
+                // Check in positive direction
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + i * dx;
+                    const newCol = col + i * dy;
+                    
+                    if (newRow >= 0 && newRow < BOARD_SIZE && 
+                        newCol >= 0 && newCol < BOARD_SIZE &&
+                        board[newRow][newCol] === player) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Check in negative direction
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - i * dx;
+                    const newCol = col - i * dy;
+                    
+                    if (newRow >= 0 && newRow < BOARD_SIZE && 
+                        newCol >= 0 && newCol < BOARD_SIZE &&
+                        board[newRow][newCol] === player) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (count >= 5) return true;
+            }
+            
+            return false;
+        }
+        
+        // Evaluate the potential of a position for a player
+        function evaluatePosition(row, col, player) {
+            if (!isValidMove(row, col)) return 0;
+            
+            let score = 0;
+            
+            // Directions: horizontal, vertical, diagonal (/), diagonal (\)
+            const directions = [
+                [0, 1],  // horizontal
+                [1, 0],  // vertical
+                [1, 1],  // diagonal \
+                [1, -1]  // diagonal /
+            ];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1; // Count current position
+                let blocked = 0; // Count of blocked ends
+                
+                // Check in positive direction
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + i * dx;
+                    const newCol = col + i * dy;
+                    
+                    if (newRow < 0 || newRow >= BOARD_SIZE || 
+                        newCol < 0 || newCol >= BOARD_SIZE ||
+                        board[newRow][newCol] === (player === 1 ? 2 : 1)) {
+                        blocked++;
+                        break;
+                    } else if (board[newRow][newCol] === player) {
+                        count++;
+                    } else {
+                        break; // Empty space
+                    }
+                }
+                
+                // Check in negative direction
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - i * dx;
+                    const newCol = col - i * dy;
+                    
+                    if (newRow < 0 || newRow >= BOARD_SIZE || 
+                        newCol < 0 || newCol >= BOARD_SIZE ||
+                        board[newRow][newCol] === (player === 1 ? 2 : 1)) {
+                        blocked++;
+                        break;
+                    } else if (board[newRow][newCol] === player) {
+                        count++;
+                    } else {
+                        break; // Empty space
+                    }
+                }
+                
+                // Scoring based on potential
+                if (count >= 5) return 100000; // Immediate win
+                if (count === 4 && blocked === 0) score += 10000; // Open four
+                else if (count === 4 && blocked === 1) score += 1000; // Blocked four
+                else if (count === 3 && blocked === 0) score += 1000; // Open three
+                else if (count === 3 && blocked === 1) score += 100; // Blocked three
+                else if (count === 2 && blocked === 0) score += 100; // Open two
+                else if (count === 2 && blocked === 1) score += 10; // Blocked two
+                else if (count === 1) score += 1; // Single stone
+            }
+            
+            return score;
+        }
+        
+        // AI move selection
+        function makeAIMove() {
+            if (gameOver || currentPlayer !== 2) return; // Only let AI (white) play
+            
+            let bestScore = -1;
+            let bestMove = null;
+            
+            // Look for the best move by evaluating all possible positions
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (isValidMove(row, col)) {
+                        // Evaluate position for AI (offensive)
+                        const attackScore = evaluatePosition(row, col, 2);
+                        // Evaluate position for blocking player (defensive)
+                        const defendScore = evaluatePosition(row, col, 1);
+                        
+                        // Total score is sum of attack and defend scores
+                        const totalScore = attackScore + defendScore;
+                        
+                        // Prefer center positions slightly
+                        const centerDistance = Math.abs(row - 7) + Math.abs(col - 7);
+                        const finalScore = totalScore - centerDistance * 2;
+                        
+                        if (finalScore > bestScore) {
+                            bestScore = finalScore;
+                            bestMove = { row, col };
+                        }
+                    }
+                }
+            }
+            
+            if (bestMove) {
+                placeStone(bestMove.row, bestMove.col);
+            }
+        }
+        
+        // Handle canvas click
+        canvas.addEventListener('click', (e) => {
+            if (gameOver || currentPlayer !== 1) return; // Only allow human player (black) to play
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Find the closest intersection
+            let col = Math.round((x - OFFSET) / CELL_SIZE);
+            let row = Math.round((y - OFFSET) / CELL_SIZE);
+            
+            if (isValidMove(row, col)) {
+                if (placeStone(row, col)) {
+                    // After human makes a move, let AI respond if game is not over
+                    if (!gameOver) {
+                        setTimeout(makeAIMove, 500); // Delay for better UX
+                    }
+                }
+            }
+        });
+        
+        // Restart game
+        restartBtn.addEventListener('click', () => {
+            initBoard();
+            drawBoard();
+        });
+        
+        // Initialize and start the game
+        window.onload = () => {
+            initBoard();
+            drawBoard();
+        };
+    </script>
+</body>
+</html>

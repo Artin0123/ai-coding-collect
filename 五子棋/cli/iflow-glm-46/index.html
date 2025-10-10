@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>五子棋遊戲</title>
+    <title>五子棋 - 人機對戰</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <div class="game-header">
-            <h1>五子棋遊戲</h1>
+        <header>
+            <h1>五子棋</h1>
             <div class="game-info">
                 <div class="current-turn">當前回合：<span id="current-player">黑方</span></div>
                 <button id="restart-btn" class="restart-btn">重新開始</button>
             </div>
-        </div>
-        <div class="game-board-container">
-            <div id="game-board" class="game-board"></div>
-        </div>
-        <div id="game-message" class="game-message hidden"></div>
+        </header>
+        
+        <main>
+            <div class="board-container">
+                <canvas id="game-board" width="600" height="600"></canvas>
+            </div>
+            <div id="game-message" class="game-message hidden"></div>
+        </main>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

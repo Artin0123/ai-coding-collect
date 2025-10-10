@@ -9,41 +9,51 @@ body {
     font-family: sans-serif;
 }
 
-.container {
-    text-align: center;
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #DEB887;
+    /* 淺褐色 */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 h1 {
     color: #8B4513;
+    margin-bottom: 10px;
 }
 
-.game-info {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
+#turn-display {
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    color: #8B4513;
 }
 
-#gobang-board {
+#gomoku-board {
     background-color: #DEB887;
     /* 淺褐色 */
     border: 2px solid #8B4513;
     /* 深褐色 */
+    box-sizing: content-box;
+    /* 確保邊框不會縮小棋盤內容 */
 }
 
 #restart-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1.1em;
     background-color: #4A90E2;
     /* 藍色 */
     color: #FFFFFF;
     /* 白色 */
     border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
     border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 #restart-button:hover {
-    opacity: 0.9;
+    background-color: #3A7AD1;
 }

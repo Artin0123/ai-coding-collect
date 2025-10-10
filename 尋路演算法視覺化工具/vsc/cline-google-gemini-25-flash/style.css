@@ -1,0 +1,117 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #eef2f4;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: #fdfdfd;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.controls button,
+.controls select {
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.controls button:hover:not(:disabled),
+.controls select:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.controls button:disabled,
+.controls select:disabled {
+    background-color: #6c717bff;
+    cursor: not-allowed;
+}
+
+.stats {
+    margin-bottom: 20px;
+    color: #2c3e50;
+    text-align: left;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.stats p {
+    margin: 0;
+}
+
+#grid-container {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    border: 1px solid #ccc;
+    margin: 0 auto;
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    background-color: #fdfdfd;
+    /* 預設背景 */
+}
+
+/* 格子狀態顏色 */
+.cell.start {
+    background-color: #4ade80;
+    /* 綠色 */
+}
+
+.cell.end {
+    background-color: #f87171;
+    /* 紅色 */
+}
+
+.cell.obstacle {
+    background-color: #34495e;
+    /* 深灰色 */
+}
+
+.cell.open {
+    background-color: #aed6f1;
+    /* 淡藍色 */
+}
+
+.cell.closed {
+    background-color: #f5cba7;
+    /* 淡橘色 */
+}
+
+.cell.path {
+    background-color: #f1c40f;
+    /* 黃色 */
+}

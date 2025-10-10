@@ -20,7 +20,7 @@ body {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 700px;
+    max-width: 800px;
     width: 100%;
 }
 
@@ -66,33 +66,131 @@ h1 {
 }
 
 .board-container {
-    display: inline-block;
-    padding: 20px;
-    background-color: #DEB887;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
 }
 
-#board {
-    border: 2px solid #8B4513;
+.board {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    width: 600px;
+    height: 600px;
     background-color: #DEB887;
-    cursor: crosshair;
+    border: 3px solid #8B4513;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.board::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(#8B4513 1px, transparent 1px),
+        linear-gradient(90deg, #8B4513 1px, transparent 1px);
+    background-size: calc(100% / 15) calc(100% / 15);
+    pointer-events: none;
+}
+
+.intersection {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.intersection:hover {
+    background-color: rgba(139, 69, 19, 0.1);
+}
+
+.piece {
+    width: 85%;
+    height: 85%;
+    border-radius: 50%;
+    position: absolute;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    transition: transform 0.1s ease;
+}
+
+.piece.black {
+    background: radial-gradient(circle at 30% 30%, #444, #000);
+    border: 2px solid #333;
+}
+
+.piece.white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    border: 2px solid #ccc;
+}
+
+.piece:hover {
+    transform: scale(1.05);
+}
+
+/* 星位樣式 */
+.star {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #8B4513;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+/* 勝利動畫 */
+.winning-piece {
+    animation: winPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes winPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.1);
+    }
 }
 
 .game-status {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 5px;
     font-size: 1.2em;
     font-weight: bold;
-    color: #E74C3C;
-    min-height: 30px;
-    margin-top: 10px;
+    text-align: center;
+}
+
+.game-status.win {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.game-status.draw {
+    background-color: #FF9800;
+    color: white;
 }
 
 /* 響應式設計 */
 @media (max-width: 768px) {
     .container {
-        padding: 15px;
-        max-width: 95%;
+        padding: 10px;
+    }
+
+    .board {
+        width: 90vw;
+        height: 90vw;
+        max-width: 500px;
+        max-height: 500px;
     }
 
     h1 {
@@ -101,32 +199,6 @@ h1 {
 
     .game-info {
         flex-direction: column;
-        gap: 15px;
-        padding: 0 10px;
-    }
-
-    .board-container {
-        padding: 15px;
-    }
-
-    #board {
-        width: 100%;
-        max-width: 500px;
-        height: auto;
-    }
-}
-
-@media (max-width: 480px) {
-    h1 {
-        font-size: 1.8em;
-    }
-
-    .current-turn {
-        font-size: 1em;
-    }
-
-    #restart-btn {
-        padding: 8px 16px;
-        font-size: 0.9em;
+        gap: 10px;
     }
 }

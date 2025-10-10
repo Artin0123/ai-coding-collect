@@ -1,278 +1,272 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const canvas = document.getElementById('board');
-    const ctx = canvas.getContext('2d');
-    const gridSize = 15;
-    const cellSize = canvas.width / (gridSize - 1); // 600 / 14 ≈ 42.857
-    let board = Array(gridSize).fill().map(() => Array(gridSize).fill(0)); // 0: empty, 1: black, 2: white
-    let currentPlayer = 1; // 1: black, 2: white
-    let gameOver = false;
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const turnDisplay = document.querySelector('.turn-display');
+const messageDiv = document.getElementById('message');
+const restartBtn = document.getElementById('restart-btn');
 
-    // Star points: positions 3,7,11
-    const stars = [[3, 3], [3, 7], [3, 11], [7, 3], [7, 7], [7, 11], [11, 3], [11, 7], [11, 11]];
+const BOARD_SIZE = 15;
+const CELL_SIZE = canvas.width / BOARD_SIZE;
+const MARGIN = CELL_SIZE; // 確保棋子顯示完整，最外框線條可見
+const BOARD_OFFSET = MARGIN;
 
-    // Initialize
-    updateTurn();
+// 初始化棋盤狀態
+let board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0)); // 0=空, 1=黑, 2=白
+let currentPlayer = 1; // 1=黑 (玩家), 2=白 (AI)
+let gameOver = false;
+
+// 星位位置
+const STAR_POSITIONS = [
+    [3, 3], [7, 7], [11, 11],
+    [3, 11], [11, 3]
+];
+
+function initGame() {
+    board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+    currentPlayer = 1;
+    gameOver = false;
+    messageDiv.textContent = '';
+    updateTurnDisplay();
     drawBoard();
+}
 
-    // Draw the board grid and stars
-    function drawBoard() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#8B4513';
-        ctx.lineWidth = 2;
+function drawBoard() {
+    ctx.fillStyle = '#DEB887';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Horizontal lines
-        for (let i = 0; i < gridSize; i++) {
-            let y = i * cellSize;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvas.width, y);
-            ctx.stroke();
-        }
+    // 繪製線條
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2;
 
-        // Vertical lines
-        for (let i = 0; i < gridSize; i++) {
-            let x = i * cellSize;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
-            ctx.stroke();
-        }
-
-        // Draw stars
-        for (let star of stars) {
-            let x = star[1] * cellSize;
-            let y = star[0] * cellSize;
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = '#8B4513';
-            ctx.fill();
-        }
-    }
-
-    // Draw all pieces
-    function drawPieces() {
-        for (let r = 0; r < gridSize; r++) {
-            for (let c = 0; c < gridSize; c++) {
-                if (board[r][c] !== 0) {
-                    drawPiece(r, c, board[r][c]);
-                }
-            }
-        }
-    }
-
-    // Draw a single piece
-    function drawPiece(r, c, player) {
-        let x = c * cellSize;
-        let y = r * cellSize;
-        let radius = cellSize * 0.4; // 80% of cell, radius 40%
-        let gradient = ctx.createRadialGradient(x - radius / 3, y - radius / 3, radius / 10, x, y, radius);
-        if (player === 1) { // Black with gradient for highlight
-            gradient.addColorStop(0, '#606060');
-            gradient.addColorStop(1, '#000000');
-        } else { // White
-            gradient.addColorStop(0, '#FFFFFF');
-            gradient.addColorStop(1, '#C0C0C0');
-        }
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        // 水平線
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, 2 * Math.PI);
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        // Outline
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1;
+        ctx.moveTo(BOARD_OFFSET, BOARD_OFFSET + i * CELL_SIZE);
+        ctx.lineTo(BOARD_OFFSET + (BOARD_SIZE - 1) * CELL_SIZE, BOARD_OFFSET + i * CELL_SIZE);
+        ctx.stroke();
+
+        // 垂直線
+        ctx.beginPath();
+        ctx.moveTo(BOARD_OFFSET + i * CELL_SIZE, BOARD_OFFSET);
+        ctx.lineTo(BOARD_OFFSET + i * CELL_SIZE, BOARD_OFFSET + (BOARD_SIZE - 1) * CELL_SIZE);
         ctx.stroke();
     }
 
-    // Handle canvas click
-    canvas.addEventListener('click', function (e) {
-        if (gameOver) return;
-
-        let rect = canvas.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        let y = e.clientY - rect.top;
-        let c = Math.round(x / cellSize);
-        let r = Math.round(y / cellSize);
-
-        if (c < 0 || c >= gridSize || r < 0 || r >= gridSize || board[r][c] !== 0) {
-            return;
-        }
-
-        placePiece(r, c, currentPlayer);
-        currentPlayer = 3 - currentPlayer;
-        updateTurn();
-
-        let winner = checkWin(r, c);
-        if (winner) {
-            gameOver = true;
-            showMessage(winner === 1 ? '黑方獲勝！' : 'AI獲勝！');
-        } else {
-            // AI move after 0.5 seconds
-            setTimeout(aiMove, 500);
-        }
+    // 繪製星位
+    ctx.fillStyle = '#8B4513';
+    STAR_POSITIONS.forEach(([row, col]) => {
+        ctx.beginPath();
+        ctx.arc(BOARD_OFFSET + col * CELL_SIZE, BOARD_OFFSET + row * CELL_SIZE, 3, 0, Math.PI * 2);
+        ctx.fill();
     });
 
-    // Place a piece
-    function placePiece(r, c, player) {
-        board[r][c] = player;
-        drawPiece(r, c, player);
-    }
-
-    // Update turn display
-    function updateTurn() {
-        document.getElementById('turn').textContent = `當前回合：${currentPlayer === 1 ? '黑方' : '白方'}`;
-    }
-
-    // Show message
-    function showMessage(msg) {
-        document.getElementById('message').textContent = msg;
-    }
-
-    // Check win after placing at (r,c)
-    function checkWin(r, c) {
-        let player = board[r][c];
-        const directions = [
-            [0, 1], // right
-            [1, 0], // down
-            [1, 1], // down-right
-            [1, -1] // down-left
-        ];
-
-        for (let dir of directions) {
-            let count = 1;
-            let dr = dir[0], dc = dir[1];
-            // Forward
-            let nr = r + dr, nc = c + dc;
-            while (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && board[nr][nc] === player) {
-                count++;
-                nr += dr;
-                nc += dc;
-            }
-            // Backward
-            nr = r - dr; nc = c - dc;
-            while (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && board[nr][nc] === player) {
-                count++;
-                nr -= dr;
-                nc -= dc;
-            }
-            if (count >= 5) return player;
-        }
-        return 0;
-    }
-
-    // AI move logic
-    function aiMove() {
-        if (gameOver) return;
-
-        let candidates = getCandidates();
-        let bestMove = null;
-        let maxScore = -1;
-
-        for (let [r, c] of candidates) {
-            let score = evaluateMove(r, c, 2); // for AI (white)
-            if (score > maxScore) {
-                maxScore = score;
-                bestMove = [r, c];
-            }
-        }
-
-        if (bestMove) {
-            placePiece(bestMove[0], bestMove[1], 2);
-            currentPlayer = 1;
-            updateTurn();
-            let winner = checkWin(bestMove[0], bestMove[1]);
-            if (winner) {
-                gameOver = true;
-                showMessage('AI獲勝！');
+    // 繪製棋子
+    for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+            if (board[row][col] !== 0) {
+                drawStone(row, col, board[row][col]);
             }
         }
     }
+}
 
-    // Get candidate moves: empty spots near existing pieces
-    function getCandidates() {
-        let candidates = new Set();
-        for (let r = 0; r < gridSize; r++) {
-            for (let c = 0; c < gridSize; c++) {
-                if (board[r][c] !== 0) {
-                    for (let dr = -1; dr <= 1; dr++) {
-                        for (let dc = -1; dc <= 1; dc++) {
-                            if (dr === 0 && dc === 0) continue;
-                            let nr = r + dr, nc = c + dc;
-                            if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && board[nr][nc] === 0) {
-                                candidates.add(nr * gridSize + nc);
-                            }
-                        }
-                    }
+function drawStone(row, col, color) {
+    const x = BOARD_OFFSET + col * CELL_SIZE;
+    const y = BOARD_OFFSET + row * CELL_SIZE;
+    const radius = CELL_SIZE / 2 - 2;
+
+    const gradient = ctx.createRadialGradient(x - radius / 3, y - radius / 3, 0, x, y, radius);
+    if (color === 1) { // 黑子
+        gradient.addColorStop(0, '#555');
+        gradient.addColorStop(1, '#000');
+    } else { // 白子
+        gradient.addColorStop(0, '#FFF');
+        gradient.addColorStop(1, '#CCC');
+    }
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function getClickedPosition(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left - BOARD_OFFSET;
+    const y = event.clientY - rect.top - BOARD_OFFSET;
+
+    if (x < 0 || x > (BOARD_SIZE - 1) * CELL_SIZE || y < 0 || y > (BOARD_SIZE - 1) * CELL_SIZE) {
+        return null;
+    }
+
+    const col = Math.round(x / CELL_SIZE);
+    const row = Math.round(y / CELL_SIZE);
+
+    return { row, col };
+}
+
+function makeMove(row, col) {
+    if (board[row][col] !== 0 || gameOver) return false;
+
+    board[row][col] = currentPlayer;
+    drawStone(row, col, currentPlayer);
+
+    if (checkWin(row, col)) {
+        gameOver = true;
+        messageDiv.textContent = currentPlayer === 1 ? '黑方獲勝！' : '白方獲勝！';
+        return true;
+    }
+
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    updateTurnDisplay();
+
+    if (currentPlayer === 2) {
+        setTimeout(aiMove, 500); // AI延遲回應
+    }
+
+    return true;
+}
+
+function checkWin(row, col) {
+    const dirs = [
+        [0, 1], [1, 0], [1, 1], [1, -1]
+    ];
+
+    for (const [dr, dc] of dirs) {
+        let count = 1;
+        // 正向
+        let r = row + dr, c = col + dc;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === currentPlayer) {
+            count++;
+            r += dr; c += dc;
+        }
+        // 反向
+        r = row - dr; c = col - dc;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === currentPlayer) {
+            count++;
+            r -= dr; c -= dc;
+        }
+        if (count >= 5) return true;
+    }
+    return false;
+}
+
+function evaluatePosition(row, col, player) {
+    let score = 0;
+
+    const dirs = [
+        [0, 1], [1, 0], [1, 1], [1, -1]
+    ];
+
+    for (const [dr, dc] of dirs) {
+        let count = 0;
+        let openEnds = 0;
+
+        // 正向
+        let r = row + dr, c = col + dc, blocked = false;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            if (board[r][c] === player) count++;
+            else if (board[r][c] === 0) { openEnds++; break; }
+            else { blocked = true; break; }
+            r += dr; c += dc;
+        }
+        if (!blocked) openEnds++;
+
+        // 反向
+        r = row - dr; c = col - dc; blocked = false;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            if (board[r][c] === player) count++;
+            else if (board[r][c] === 0) { openEnds++; break; }
+            else { blocked = true; break; }
+            r -= dr; c -= dc;
+        }
+        if (!blocked) openEnds++;
+
+        // 得分計算
+        const total = count + 1; // 加上當前位置
+        if (total >= 5) score += 10000;
+        else if (total === 4 && openEnds >= 1) score += 1000;
+        else if (total === 3 && openEnds >= 1) score += 100;
+        else if (total === 2 && openEnds >= 2) score += 10;
+        else score += total;
+    }
+
+    // 防守分數：計算對手的線條潛力
+    const opponent = player === 1 ? 2 : 1;
+    let defendScore = 0;
+
+    for (const [dr, dc] of dirs) {
+        let count = 0;
+        let openEnds = 0;
+
+        // 正向
+        let r = row + dr, c = col + dc, blocked = false;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            if (board[r][c] === opponent) count++;
+            else if (board[r][c] === 0) { openEnds++; break; }
+            else { blocked = true; break; }
+            r += dr; c += dc;
+        }
+        if (!blocked) openEnds++;
+
+        // 反向
+        r = row - dr; c = col - dc; blocked = false;
+        while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            if (board[r][c] === opponent) count++;
+            else if (board[r][c] === 0) { openEnds++; break; }
+            else { blocked = true; break; }
+            r -= dr; c -= dc;
+        }
+        if (!blocked) openEnds++;
+
+        // 防守得分計算（類似攻擊但權重稍高）
+        const total = count + 1;
+        if (total >= 5) defendScore += 10000;
+        else if (total === 4 && openEnds >= 1) defendScore += 1200; // 防守活四更重要
+        else if (total === 3 && openEnds >= 1) defendScore += 120;
+        else if (total === 2 && openEnds >= 2) defendScore += 12;
+        else defendScore += total;
+    }
+
+    return score + defendScore; // 不需要額外權重，防守得分已調整
+}
+
+function aiMove() {
+    if (gameOver) return;
+
+    let bestScore = -Infinity;
+    let bestMove = null;
+
+    for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+            if (board[row][col] === 0) {
+                board[row][col] = 2; // 暫時下棋
+                const score = evaluatePosition(row, col, 2);
+                board[row][col] = 0; // 移除
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = { row, col };
                 }
             }
         }
-        if (candidates.size === 0) {
-            // First move: center
-            candidates.add(7 * gridSize + 7);
-        }
-        return Array.from(candidates).map(pos => [Math.floor(pos / gridSize), pos % gridSize]);
     }
 
-    // Evaluate move for player (1 or 2) at (r,c)
-    function evaluateMove(r, c, player) {
-        board[r][c] = player; // Temp place
-        let score = 0;
-
-        // Distance from center
-        let dist = Math.abs(r - 7) + Math.abs(c - 7);
-        score += 15 / (dist + 1);
-
-        // Check if win
-        if (checkWin(r, c) === player) {
-            score += 10000;
-            board[r][c] = 0;
-            return score;
-        }
-
-        // Check threats: max consecutive for self and opponent
-        let selfThreat = getMaxConsecutive(r, c, player);
-        let oppThreat = getMaxConsecutive(r, c, 3 - player);
-
-        score += oppThreat * 100; // Blocking opponent
-        score += selfThreat * 50;  // Extending own
-
-        board[r][c] = 0; // Undo temp
-        return score;
+    if (bestMove) {
+        makeMove(bestMove.row, bestMove.col);
     }
+}
 
-    // Get max consecutive in any direction (for threat level)
-    function getMaxConsecutive(r, c, player) {
-        board[r][c] = player; // Temp
-        let maxCount = 0;
-        for (let dir of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
-            let count = 0;
-            let dr = dir[0], dc = dir[1];
-            // Forward
-            let nr = r + dr, nc = c + dc;
-            while (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && board[nr][nc] === player) {
-                count++;
-                nr += dr;
-                nc += dc;
-            }
-            // Backward
-            nr = r - dr; nc = c - dc;
-            while (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && board[nr][nc] === player) {
-                count++;
-                nr -= dr;
-                nc -= dc;
-            }
-            maxCount = Math.max(maxCount, count);
-        }
-        board[r][c] = 0; // Undo
-        return maxCount;
+function updateTurnDisplay() {
+    turnDisplay.textContent = currentPlayer === 1 ? '黑方回合' : '白方回合';
+}
+
+canvas.addEventListener('click', (e) => {
+    const pos = getClickedPosition(e);
+    if (pos && currentPlayer === 1) {
+        makeMove(pos.row, pos.col);
     }
-
-    // Restart game
-    document.getElementById('restart').addEventListener('click', function () {
-        board = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
-        currentPlayer = 1;
-        gameOver = false;
-        updateTurn();
-        showMessage('');
-        drawBoard();
-    });
 });
+
+restartBtn.addEventListener('click', initGame);
+
+initGame();

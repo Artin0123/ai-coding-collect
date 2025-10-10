@@ -1,32 +1,40 @@
-關於 CLI 的部分，後來發現 Dijkstra 和 BFS 的效果是一樣的，懶得重跑了，所以有跑 BFS 的程式都不檢測這個功能。
-
 ## 分數統計
 ### CLI
-- codebuddy-default: 25,20,10,10,30 = 95
-- codebuddy-gemini-25-pro: 10,5,10,10,20 = 55
-- codebuddy-gpt-5: 10,20,10,10,25 = 75
-- gemini-gemini-25-pro: 25,20,5,10,30 = 90
-- iflow-deepseek-v32: 17,15,10,10,30 = 82
-- iflow-glm-46: 25,15,20,25,30 = 90
-- iflow-kimi-k2-0905: 25,20,5,10,30 = 90
-- iflow-qwen3-coder: 25,25,10,10,30 = 100
-- iflow-qwen3-max: 25,10,0,10,30 = 75
+
+- codebuddy-gemini-25-pro: 1,7 = 8
+- codebuddy-gpt-5-codex: 1,7 = 8+0.5 = 8.5
+- gemini: 1,6 = 7
+- iflow-deepseek-v32: 1,7 = 8
+- iflow-glm-46: 1,7 = 8-1 = 7
+- iflow-kimi-k2-0905: 1,7 = 8
+- iflow-qwen3-coder: 1,6 = 7
+- iflow-qwen3-max: 0,7 = 7
+- qwen: 1,7 = 8
 
 ### VSC
-- cline-code-supernova: 25,20,10,10,30 = 95
-- cline-grok-code-fast: 10,10,0,10,25 = 55
-- copilot-google-gemini-25-flash: 25,20,5,5,30 = 85
-- kilo-code-supernova: 25,5,10,10,30 = 80
-- kilo-google-gemini-25-flash: 25,20,10,5,30 = 90
 
-### 前三 CLI（含同分）
-- iflow-qwen3-coder (100)
-- codebuddy-default (95)
-- gemini-gemini-25-pro (90)
-- iflow-glm-46 (90)
-- iflow-kimi-k2-0905 (90)
+- cline-cerebras-qwen-3-coder-free: 1,8 = 9
+- cline-code-supernova: 1,5 = 6
+- cline-google-gemini-25-flash: 0,7 = 7
+- cline-grok-code-fast: 1,7 = 8+0.5 = 8.5
+- cline-mistral-mistral-medium-latest: 1,6 = 7
+- copilot-google-gemini-25-flash: 1,8 = 9+0.5 = 8.5
 
-### 前三 VSC（含同分）
-- cline-code-supernova (95)
-- kilo-google-gemini-25-flash (90)
-- copilot-google-gemini-25-flash (85)
+### CLI 高到低
+- codebuddy-gpt-5-codex 8.5
+- codebuddy-gemini-25-pro 8
+- iflow-deepseek-v32 8
+- iflow-kimi-k2-0905 8
+- qwen 8
+- gemini 7
+- iflow-glm-46 7
+- iflow-qwen3-coder 7
+- iflow-qwen3-max 7
+
+### VSC 高到低
+- cline-cerebras-qwen-3-coder-free 9
+- cline-grok-code-fast 8.5
+- copilot-google-gemini-25-flash 8.5
+- cline-google-gemini-25-flash 7
+- cline-mistral-mistral-medium-latest 7
+- cline-code-supernova 6

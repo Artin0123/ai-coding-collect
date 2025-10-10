@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    padding: 20px;
+    padding: 0;
     background-color: #F5E6D3;
     font-family: Arial, sans-serif;
     display: flex;
@@ -18,77 +18,25 @@ h1 {
 }
 
 .status {
+    margin: 10px 0;
     font-size: 18px;
-    margin: 15px 0;
     color: #8B4513;
 }
 
-.board {
-    display: inline-block;
+#chessboard {
     background-color: #DEB887;
     border: 2px solid #8B4513;
-    position: relative;
-    margin: 20px auto;
-}
-
-.cell {
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-}
-
-.cell:hover {
-    background-color: rgba(139, 69, 19, 0.1);
-    border-radius: 50%;
-}
-
-.black-piece {
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    background: radial-gradient(circle at 30% 30%, #666, #000);
-    border-radius: 50%;
-    top: 3px;
-    left: 3px;
-    z-index: 2;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.white-piece {
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
-    border-radius: 50%;
-    top: 3px;
-    left: 3px;
-    z-index: 2;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.star-point::before {
-    content: "";
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    background-color: #8B4513;
-    border-radius: 50%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
 }
 
 #restart-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
     background-color: #4A90E2;
     color: #FFFFFF;
     border: none;
-    padding: 12px 24px;
+    border-radius: 5px;
     font-size: 16px;
     cursor: pointer;
-    border-radius: 4px;
-    margin-top: 20px;
 }
 
 #restart-btn:hover {

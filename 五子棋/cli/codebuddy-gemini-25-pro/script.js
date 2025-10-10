@@ -1,89 +1,136 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('game-board');
+    const canvas = document.getElementById('gobang-board');
     const ctx = canvas.getContext('2d');
     const restartButton = document.getElementById('restart-button');
     const currentPlayerSpan = document.getElementById('current-player');
 
     const BOARD_SIZE = 15;
-    const PADDING = 20;
-    const CELL_SIZE = (canvas.width - 2 * PADDING) / (BOARD_SIZE - 1);
-    const PIECE_RADIUS = CELL_SIZE * 0.4;
-    const STAR_POINTS = [
-        { x: 3, y: 3 }, { x: 11, y: 3 }, { x: 7, y: 7 },
-        { x: 3, y: 11 }, { x: 11, y: 11 }
-    ];
+    const PADDING = 20; // Corresponds to the padding in CSS
+    const GRID_SIZE = (canvas.width - 2 * PADDING) / (BOARD_SIZE - 1);
+    const PIECE_RADIUS = GRID_SIZE / 2 * 0.9;
 
-    let board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
-    let currentPlayer = 1; // 1 for Black, 2 for White
+    let board = [];
+    let isPlayerTurn = true;
     let gameOver = false;
+
+    function init() {
+        // Reset game state
+        board = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
+        isPlayerTurn = true;
+        gameOver = false;
+        updateTurnIndicator();
+        drawBoard();
+    }
 
     function drawBoard() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#DEB887'; // Board color from CSS
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         ctx.strokeStyle = '#8B4513';
         ctx.lineWidth = 2;
 
+        // Draw grid lines
         for (let i = 0; i < BOARD_SIZE; i++) {
             // Vertical lines
             ctx.beginPath();
-            ctx.moveTo(PADDING + i * CELL_SIZE, PADDING);
-            ctx.lineTo(PADDING + i * CELL_SIZE, canvas.height - PADDING);
+            ctx.moveTo(PADDING + i * GRID_SIZE, PADDING);
+            ctx.lineTo(PADDING + i * GRID_SIZE, canvas.height - PADDING);
             ctx.stroke();
 
             // Horizontal lines
             ctx.beginPath();
-            ctx.moveTo(PADDING, PADDING + i * CELL_SIZE);
-            ctx.lineTo(canvas.width - PADDING, PADDING + i * CELL_SIZE);
+            ctx.moveTo(PADDING, PADDING + i * GRID_SIZE);
+            ctx.lineTo(canvas.width - PADDING, PADDING + i * GRID_SIZE);
             ctx.stroke();
         }
 
         // Draw star points
+        const starPoints = [
+            [3, 3], [11, 3],
+            [3, 11], [11, 11],
+            [7, 7] // Center
+        ];
         ctx.fillStyle = '#8B4513';
-        STAR_POINTS.forEach(p => {
+        starPoints.forEach(([x, y]) => {
             ctx.beginPath();
-            ctx.arc(PADDING + p.x * CELL_SIZE, PADDING + p.y * CELL_SIZE, 5, 0, 2 * Math.PI);
+            ctx.arc(PADDING + x * GRID_SIZE, PADDING + y * GRID_SIZE, 5, 0, 2 * Math.PI);
             ctx.fill();
         });
     }
 
     function drawPiece(x, y, player) {
-        const canvasX = PADDING + x * CELL_SIZE;
-        const canvasY = PADDING + y * CELL_SIZE;
+        const cx = PADDING + x * GRID_SIZE;
+        const cy = PADDING + y * GRID_SIZE;
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, PIECE_RADIUS, 0, 2 * Math.PI);
 
-        let gradient = (player === 1)
-            ? ctx.createRadialGradient(canvasX - PIECE_RADIUS * 0.3, canvasY - PIECE_RADIUS * 0.3, PIECE_RADIUS * 0.1, canvasX, canvasY, PIECE_RADIUS)
-            : ctx.createRadialGradient(canvasX - PIECE_RADIUS * 0.3, canvasY - PIECE_RADIUS * 0.3, PIECE_RADIUS * 0.1, canvasX, canvasY, PIECE_RADIUS);
-
+        let gradient;
         if (player === 1) { // Black piece
+            gradient = ctx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, PIECE_RADIUS);
             gradient.addColorStop(0, '#666');
             gradient.addColorStop(1, '#000');
         } else { // White piece
+            gradient = ctx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, PIECE_RADIUS);
             gradient.addColorStop(0, '#fff');
             gradient.addColorStop(1, '#ccc');
         }
-
-        ctx.beginPath();
-        ctx.arc(canvasX, canvasY, PIECE_RADIUS, 0, 2 * Math.PI);
+        
         ctx.fillStyle = gradient;
         ctx.fill();
     }
 
     function updateTurnIndicator() {
         if (gameOver) return;
-        currentPlayerSpan.textContent = (currentPlayer === 1) ? '黑方' : '白方';
+        currentPlayerSpan.textContent = isPlayerTurn ? '黑方' : '白方';
+    }
+
+    function handleCanvasClick(event) {
+        if (gameOver || !isPlayerTurn) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.round((event.clientX - rect.left - PADDING) / GRID_SIZE);
+        const y = Math.round((event.clientY - rect.top - PADDING) / GRID_SIZE);
+
+        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return;
+
+        if (board[y][x] === 0) {
+            placePiece(x, y, 1); // Player is black (1)
+
+            if (checkWin(x, y, 1)) {
+                endGame('恭喜！黑方獲勝！');
+                return;
+            }
+
+            isPlayerTurn = false;
+            updateTurnIndicator();
+            setTimeout(aiMove, 500); // AI moves after a short delay
+        }
+    }
+    
+    function placePiece(x, y, player) {
+        board[y][x] = player;
+        drawPiece(x, y, player);
+    }
+
+    function endGame(message) {
+        gameOver = true;
+        // Use setTimeout to ensure the last piece is drawn before the alert
+        setTimeout(() => {
+            alert(message);
+        }, 100);
     }
 
     function checkWin(x, y, player) {
-        // Check horizontal, vertical, and two diagonals
+        // Directions: horizontal, vertical, diagonal (down-right), diagonal (up-right)
         const directions = [
-            { dx: 1, dy: 0 }, // Horizontal
-            { dx: 0, dy: 1 }, // Vertical
-            { dx: 1, dy: 1 }, // Diagonal \
-            { dx: 1, dy: -1 }  // Diagonal /
+            [1, 0], [0, 1], [1, 1], [1, -1]
         ];
 
-        for (const { dx, dy } of directions) {
+        for (const [dx, dy] of directions) {
             let count = 1;
-            // Check in one direction
+            // Check in positive direction
             for (let i = 1; i < 5; i++) {
                 const nx = x + i * dx;
                 const ny = y + i * dy;
@@ -93,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 }
             }
-            // Check in the opposite direction
+            // Check in negative direction
             for (let i = 1; i < 5; i++) {
                 const nx = x - i * dx;
                 const ny = y - i * dy;
@@ -107,144 +154,120 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false;
     }
-    
-    function findBestMove() {
-        // 1. Check if AI can win
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if (board[y][x] === 0) {
-                    board[y][x] = 2; // AI's player number
-                    if (checkWin(x, y, 2)) {
-                        board[y][x] = 0; // backtrack
-                        return { x, y };
-                    }
-                    board[y][x] = 0; // backtrack
-                }
-            }
-        }
-    
-        // 2. Block player's winning move
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if (board[y][x] === 0) {
-                    board[y][x] = 1; // Player's number
-                    if (checkWin(x, y, 1)) {
-                        board[y][x] = 0; // backtrack
-                        return { x, y };
-                    }
-                    board[y][x] = 0; // backtrack
-                }
-            }
-        }
-    
-        // 3. Simple heuristic: play near existing pieces
-        const moves = [];
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if (board[y][x] === 0) {
-                    let score = 0;
-                    // Check neighbors
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            if (dx === 0 && dy === 0) continue;
-                            const ny = y + dy;
-                            const nx = x + dx;
-                            if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && board[ny][nx] !== 0) {
-                                score++;
-                            }
-                        }
-                    }
-                    if (score > 0) {
-                        moves.push({ x, y, score });
-                    }
-                }
-            }
-        }
-    
-        if (moves.length > 0) {
-            moves.sort((a, b) => b.score - a.score);
-            return moves[0];
-        }
-    
-        // 4. Fallback: play in the center
-        const center = Math.floor(BOARD_SIZE / 2);
-        if (board[center][center] === 0) {
-            return { x: center, y: center };
-        }
-    
-        // 5. Absolute fallback: play a random empty spot
-        const emptySpots = [];
-        for (let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if (board[y][x] === 0) {
-                    emptySpots.push({ x, y });
-                }
-            }
-        }
-        return emptySpots[Math.floor(Math.random() * emptySpots.length)];
-    }
 
     function aiMove() {
         if (gameOver) return;
 
-        setTimeout(() => {
-            const move = findBestMove();
-            if (move && board[move.y][move.x] === 0) {
-                board[move.y][move.x] = 2;
-                drawPiece(move.x, move.y, 2);
-                if (checkWin(move.x, move.y, 2)) {
-                    gameOver = true;
-                    setTimeout(() => alert('白方獲勝！'), 100);
-                } else {
-                    currentPlayer = 1;
-                    updateTurnIndicator();
-                }
-            }
-        }, 500);
-    }
-
-    canvas.addEventListener('click', (event) => {
-        if (gameOver || currentPlayer !== 1) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        const gridX = Math.round((x - PADDING) / CELL_SIZE);
-        const gridY = Math.round((y - PADDING) / CELL_SIZE);
-
-        if (gridX >= 0 && gridX < BOARD_SIZE && gridY >= 0 && gridY < BOARD_SIZE && board[gridY][gridX] === 0) {
-            board[gridY][gridX] = 1;
-            drawPiece(gridX, gridY, 1);
-            if (checkWin(gridX, gridY, 1)) {
-                gameOver = true;
-                setTimeout(() => alert('黑方獲勝！'), 100);
-            } else {
-                currentPlayer = 2;
-                updateTurnIndicator();
-                aiMove();
+        const bestMove = findBestMove();
+        if (bestMove) {
+            placePiece(bestMove.x, bestMove.y, 2); // AI is white (2)
+            if (checkWin(bestMove.x, bestMove.y, 2)) {
+                endGame('可惜！白方獲勝！');
+                return;
             }
         }
-    });
-
-    function resetGame() {
-        board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
-        currentPlayer = 1;
-        gameOver = false;
-        drawBoard();
-        for(let y = 0; y < BOARD_SIZE; y++) {
-            for (let x = 0; x < BOARD_SIZE; x++) {
-                if(board[y][x] !== 0) {
-                    drawPiece(x, y, board[y][x]);
-                }
-            }
-        }
+        
+        isPlayerTurn = true;
         updateTurnIndicator();
     }
-    
-    restartButton.addEventListener('click', resetGame);
 
-    // Initial draw
-    drawBoard();
-    updateTurnIndicator();
+    function findBestMove() {
+        let bestScore = -Infinity;
+        let move = null;
+
+        for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+                if (board[y][x] === 0) {
+                    // Calculate score for this move
+                    const score = calculateScore(x, y);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = { x, y };
+                    }
+                }
+            }
+        }
+        return move;
+    }
+
+    function calculateScore(x, y) {
+        // Score for AI (player 2)
+        const offensiveScore = evaluatePosition(x, y, 2);
+        // Score for blocking Player (player 1)
+        const defensiveScore = evaluatePosition(x, y, 1);
+
+        // Defensive score is slightly more important
+        return offensiveScore + defensiveScore * 1.2;
+    }
+
+    function evaluatePosition(x, y, player) {
+        let score = 0;
+        const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+        const scores = {
+            '5': 100000, // 5 in a row
+            '4_live': 10000, // live 4
+            '4_dead': 1000,  // dead 4
+            '3_live': 1000,  // live 3
+            '3_dead': 100,   // dead 3
+            '2_live': 10,    // live 2
+            '2_dead': 1,     // dead 2
+        };
+
+        board[y][x] = player; // Temporarily place piece
+
+        for (const [dx, dy] of directions) {
+            let consecutive = 1;
+            let openEnds = 0;
+            let line = [player];
+
+            // Positive direction
+            for (let i = 1; i < 5; i++) {
+                const nx = x + i * dx, ny = y + i * dy;
+                if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE) break;
+                line.push(board[ny][nx]);
+            }
+            // Negative direction
+            for (let i = 1; i < 5; i++) {
+                const nx = x - i * dx, ny = y - i * dy;
+                if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE) break;
+                line.unshift(board[ny][nx]);
+            }
+            
+            // Find our consecutive pieces around the newly placed one
+            const centerIndex = line.indexOf(player, line.findIndex(p => p === player));
+            
+            // Right side from center
+            for(let i = centerIndex + 1; i < line.length; i++){
+                if(line[i] === player) consecutive++;
+                else { if(line[i] === 0) openEnds++; break; }
+            }
+            // Left side from center
+            for(let i = centerIndex - 1; i >= 0; i--){
+                if(line[i] === player) consecutive++;
+                else { if(line[i] === 0) openEnds++; break; }
+            }
+
+            if (consecutive >= 5) score += scores['5'];
+            else if (consecutive === 4) {
+                if (openEnds === 2) score += scores['4_live'];
+                else if (openEnds === 1) score += scores['4_dead'];
+            } else if (consecutive === 3) {
+                if (openEnds === 2) score += scores['3_live'];
+                else if (openEnds === 1) score += scores['3_dead'];
+            } else if (consecutive === 2) {
+                if (openEnds === 2) score += scores['2_live'];
+                else if (openEnds === 1) score += scores['2_dead'];
+            }
+        }
+
+        board[y][x] = 0; // Remove temporary piece
+        return score;
+    }
+
+    // Event Listeners
+    canvas.addEventListener('click', handleCanvasClick);
+    restartButton.addEventListener('click', init);
+
+    // Initial game setup
+    init();
 });

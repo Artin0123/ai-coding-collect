@@ -1,60 +1,54 @@
 body {
-    background-color: #F5E6D3;
-    font-family: Arial, sans-serif;
-    text-align: center;
     margin: 0;
-    padding: 20px;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #F5E6D3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
-h1 {
-    color: #8B4513;
+.game-container {
+    text-align: center;
+}
+
+.game-info {
     margin-bottom: 20px;
 }
 
-#game {
-    display: inline-block;
-    background-color: #DEB887;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+.turn-display {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
 }
 
-#board {
-    display: block;
-    margin: 0 auto;
-    background-color: #DEB887;
-    border: 2px solid #8B4513;
-}
-
-#controls {
-    margin: 20px 0;
-}
-
-#restart {
+#restart-btn {
     background-color: #4A90E2;
     color: #FFFFFF;
     border: none;
     padding: 10px 20px;
     font-size: 16px;
-    cursor: pointer;
     border-radius: 5px;
+    cursor: pointer;
     transition: background-color 0.3s;
 }
 
-#restart:hover {
+#restart-btn:hover {
     background-color: #357ABD;
 }
 
-#turn {
-    font-size: 18px;
-    margin-top: 10px;
-    color: #8B4513;
+#game-canvas {
+    border: 1px solid #333;
+    background-color: #DEB887;
+    display: block;
+    margin: 0 auto;
 }
 
-#message {
-    color: #FF0000;
-    font-size: 24px;
+.message {
+    margin-top: 20px;
+    font-size: 18px;
     font-weight: bold;
-    margin-top: 10px;
-    min-height: 30px;
+    color: #d9534f;
 }

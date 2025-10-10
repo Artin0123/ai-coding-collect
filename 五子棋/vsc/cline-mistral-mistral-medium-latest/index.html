@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>五子棋 - 人機對戰</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>五子棋 人機對戰</h1>
+            <div class="game-info">
+                <div class="turn-indicator">當前回合: <span id="current-turn">黑方</span></div>
+                <div class="status-message" id="status-message"></div>
+            </div>
+            <div class="game-container">
+                <canvas id="gobang-board" width="600" height="600"></canvas>
+            </div>
+            <button id="restart-button" class="restart-button">重新開始</button>
+        </div>
+        <script src="script.js"></script>
+    </body>
+
+</html>

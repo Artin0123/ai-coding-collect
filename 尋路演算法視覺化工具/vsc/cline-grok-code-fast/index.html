@@ -1,36 +1,528 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-tw">
 
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>尋路演算法視覺化工具</title>
-        <link rel="stylesheet" href="styles.css">
+        <style>
+            body {
+                background-color: #eef2f4;
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 20px;
+                margin: 0;
+            }
+
+            #container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            #controls {
+                margin-bottom: 20px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                align-items: center;
+            }
+
+            button {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: background-color 0.3s;
+            }
+
+            button:hover:not(:disabled) {
+                background-color: #2980b9;
+            }
+
+            button:disabled {
+                background-color: #6c717bff;
+                cursor: not-allowed;
+            }
+
+            select {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+
+            #grid {
+                display: grid;
+                grid-template-columns: repeat(15, 30px);
+                grid-template-rows: repeat(15, 30px);
+                gap: 0;
+                border: 1px solid #ccc;
+                width: 450px;
+                margin: 0 auto;
+            }
+
+            .cell {
+                width: 30px;
+                height: 30px;
+                border: 1px solid #ccc;
+                box-sizing: border-box;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .start {
+                background-color: #4ade80;
+            }
+
+            .end {
+                background-color: #f87171;
+            }
+
+            .obstacle {
+                background-color: #34495e;
+            }
+
+            .open {
+                background-color: #aed6f1;
+            }
+
+            .closed {
+                background-color: #f5cba7;
+            }
+
+            .path {
+                background-color: #f1c40f;
+            }
+
+            .normal {
+                background-color: #fdfdfd;
+            }
+
+            #stats {
+                margin-top: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                font-size: 16px;
+                color: #2c3e50;
+                align-items: center;
+            }
+        </style>
     </head>
 
     <body>
-        <h1>尋路演算法視覺化工具</h1>
         <div id="container">
+            <h1 style="text-align: center; color: #2c3e50;">尋路演算法視覺化工具</h1>
+
             <div id="controls">
-                <button id="set-start" class="btn">設定起點</button>
-                <button id="set-end" class="btn">設定終點</button>
-                <button id="clear-path" class="btn">清除路徑</button>
-                <button id="reset" class="btn">完全重置</button>
-                <select id="algorithm" class="btn">
+                <button id="set-start">設定起點</button>
+                <button id="set-end">設定終點</button>
+                <button id="clear-path">清除路徑</button>
+                <button id="reset">完全重置</button>
+                <select id="algorithm">
                     <option value="astar">A*</option>
                     <option value="dijkstra">Dijkstra</option>
                 </select>
-                <button id="start-search" class="btn">開始尋路</button>
+                <button id="start-search">開始尋路</button>
             </div>
-            <div id="stats">
-                <span id="visited-count">已訪問節點數：0 個</span>
-                <span id="path-length">路徑長度：0 步</span>
-                <span id="execution-time">執行時間：0 ms</span>
-                <span id="current-status">當前狀態：就緒</span>
-            </div>
+
             <div id="grid"></div>
+
+            <div id="stats">
+                <div>已訪問節點數：<span id="visited-nodes">0</span> 個</div>
+                <div>路徑長度：<span id="path-length">0</span> 步</div>
+                <div>執行時間：<span id="execution-time">0</span> ms</div>
+                <div>當前狀態：<span id="status">就緒</span></div>
+            </div>
         </div>
-        <script src="script.js"></script>
+
+        <script>
+            const GRID_SIZE = 15;
+            const CELL_SIZE = 30;
+            const ANIMATION_DELAY = 10;
+
+            let grid = [];
+            let start = { x: 2, y: 2 };
+            let end = { x: 12, y: 12 };
+            let obstacles = new Set();
+            let isSettingStart = false;
+            let isSettingEnd = false;
+            let isSearching = false;
+            let dragged = false;
+
+            const gridElement = document.getElementById('grid');
+            const buttons = document.querySelectorAll('button');
+            const select = document.getElementById('algorithm');
+            const stats = {
+                visited: document.getElementById('visited-nodes'),
+                pathLength: document.getElementById('path-length'),
+                time: document.getElementById('execution-time'),
+                status: document.getElementById('status')
+            };
+
+            function initGrid() {
+                gridElement.innerHTML = '';
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    grid[y] = [];
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        grid[y][x] = cell;
+                        gridElement.appendChild(cell);
+                        updateCell(x, y);
+                    }
+                }
+            }
+
+            function updateCell(x, y) {
+                const cell = grid[y][x];
+                cell.className = 'cell';
+
+                if (x === start.x && y === start.y) {
+                    cell.classList.add('start');
+                } else if (x === end.x && y === end.y) {
+                    cell.classList.add('end');
+                } else if (obstacles.has(`${x},${y}`)) {
+                    cell.classList.add('obstacle');
+                } else {
+                    cell.classList.add('normal');
+                }
+            }
+
+            function getCellType(x, y) {
+                if (x === start.x && y === start.y) return 'start';
+                if (x === end.x && y === end.y) return 'end';
+                if (obstacles.has(`${x},${y}`)) return 'obstacle';
+                return 'normal';
+            }
+
+            function setObstacle(x, y) {
+                if (x === start.x && y === start.y || x === end.x && y === end.y) return;
+                obstacles.add(`${x},${y}`);
+                updateCell(x, y);
+            }
+
+            function removeObstacle(x, y) {
+                obstacles.delete(`${x},${y}`);
+                updateCell(x, y);
+            }
+
+            function toggleObstacle(x, y) {
+                if (x === start.x && y === start.y || x === end.x && y === end.y) return;
+                if (obstacles.has(`${x},${y}`)) {
+                    removeObstacle(x, y);
+                } else {
+                    setObstacle(x, y);
+                }
+            }
+
+            function setStart(x, y) {
+                if (x === end.x && y === end.y || obstacles.has(`${x},${y}`)) return;
+                start = { x, y };
+                initGrid();
+            }
+
+            function setEnd(x, y) {
+                if (x === start.x && y === start.y || obstacles.has(`${x},${y}`)) return;
+                end = { x, y };
+                initGrid();
+            }
+
+            function clearPath() {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        if (grid[y][x].classList.contains('open') || grid[y][x].classList.contains('closed') || grid[y][x].classList.contains('path')) {
+                            updateCell(x, y);
+                        }
+                    }
+                }
+                stats.visited.textContent = '0';
+                stats.pathLength.textContent = '0';
+                stats.time.textContent = '0';
+                stats.status.textContent = '就緒';
+            }
+
+            function reset() {
+                start = { x: 2, y: 2 };
+                end = { x: 12, y: 12 };
+                obstacles.clear();
+                initGrid();
+                clearPath();
+            }
+
+            // Mouse events
+            gridElement.addEventListener('mousedown', (e) => {
+                if (isSearching) return;
+                const cell = e.target.closest('.cell');
+                if (!cell) return;
+
+                const x = parseInt(cell.dataset.x);
+                const y = parseInt(cell.dataset.y);
+
+                if (isSettingStart) {
+                    setStart(x, y);
+                    isSettingStart = false;
+                    return;
+                }
+                if (isSettingEnd) {
+                    setEnd(x, y);
+                    isSettingEnd = false;
+                    return;
+                }
+
+                dragged = false;
+                toggleObstacle(x, y);
+            });
+
+            gridElement.addEventListener('mouseover', (e) => {
+                if (e.buttons !== 1 || isSearching) return; // Only when left mouse down
+                const cell = e.target.closest('.cell');
+                if (!cell) return;
+
+                const x = parseInt(cell.dataset.x);
+                const y = parseInt(cell.dataset.y);
+
+                if (isSettingStart || isSettingEnd) return;
+
+                dragged = true;
+                setObstacle(x, y);
+            });
+
+            document.addEventListener('mouseup', () => {
+                dragged = false;
+            });
+
+            // Control buttons
+            document.getElementById('set-start').addEventListener('click', () => {
+                if (isSearching) return;
+                isSettingStart = true;
+                isSettingEnd = false;
+            });
+
+            document.getElementById('set-end').addEventListener('click', () => {
+                if (isSearching) return;
+                isSettingEnd = true;
+                isSettingStart = false;
+            });
+
+            document.getElementById('clear-path').addEventListener('click', () => {
+                if (isSearching) return;
+                clearPath();
+            });
+
+            document.getElementById('reset').addEventListener('click', () => {
+                if (isSearching) return;
+                reset();
+                isSettingStart = false;
+                isSettingEnd = false;
+            });
+
+            document.getElementById('start-search').addEventListener('click', () => {
+                if (isSearching) return;
+                startSearch();
+            });
+
+            // Algorithm implementations
+            function manhattanDistance(x1, y1, x2, y2) {
+                return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+            }
+
+            function getNeighbors(x, y) {
+                const neighbors = [];
+                if (x > 0 && !obstacles.has(`${x - 1},${y}`)) neighbors.push([x - 1, y]);
+                if (x < GRID_SIZE - 1 && !obstacles.has(`${x + 1},${y}`)) neighbors.push([x + 1, y]);
+                if (y > 0 && !obstacles.has(`${x},${y - 1}`)) neighbors.push([x, y - 1]);
+                if (y < GRID_SIZE - 1 && !obstacles.has(`${x},${y + 1}`)) neighbors.push([x, y + 1]);
+                return neighbors;
+            }
+
+            async function startSearch() {
+                if (isSearching) return;
+                clearPath();
+                isSearching = true;
+                updateButtons(true);
+
+                const algorithm = select.value;
+                const startTime = Date.now();
+
+                let visitedCount = 0;
+                let pathFound = false;
+                let finalPath = [];
+
+                if (algorithm === 'astar') {
+                    [visitedCount, finalPath] = await astar(visitedCount);
+                } else if (algorithm === 'dijkstra') {
+                    [visitedCount, finalPath] = await dijkstra(visitedCount);
+                }
+
+                pathFound = finalPath.length > 0;
+                const endTime = Date.now();
+
+                stats.visited.textContent = visitedCount;
+                stats.pathLength.textContent = pathFound ? finalPath.length - 1 : 0; // minus start
+                stats.time.textContent = endTime - startTime;
+                stats.status.textContent = pathFound ? '找到路徑' : '無路徑';
+
+                if (pathFound) {
+                    await animatePath(finalPath);
+                } else {
+                    alert('無法找到路徑');
+                }
+
+                isSearching = false;
+                updateButtons(false);
+            }
+
+            function updateButtons(disabled) {
+                buttons.forEach(btn => btn.disabled = disabled);
+                select.disabled = disabled;
+            }
+
+            async function astar(visitedCount) {
+                const openSet = [];
+                const cameFrom = {};
+                const gScore = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(Infinity));
+                const fScore = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(Infinity));
+
+                gScore[start.y][start.x] = 0;
+                fScore[start.y][start.x] = manhattanDistance(start.x, start.y, end.x, end.y);
+
+                openSet.push([start.x, start.y]);
+
+                while (openSet.length > 0) {
+                    // Find node with lowest fScore
+                    let lowestIndex = 0;
+                    for (let i = 1; i < openSet.length; i++) {
+                        if (fScore[openSet[i][1]][openSet[i][0]] < fScore[openSet[lowestIndex][1]][openSet[lowestIndex][0]]) {
+                            lowestIndex = i;
+                        }
+                    }
+
+                    const current = openSet.splice(lowestIndex, 1)[0];
+                    const cx = current[0], cy = current[1];
+
+                    visitedCount++;
+                    if (cx === end.x && cy === end.y) {
+                        const path = reconstructPath(cameFrom, current);
+                        return [visitedCount, path];
+                    }
+
+                    // Add to closed set (visualize)
+                    grid[cy][cx].classList.remove('open');
+                    grid[cy][cx].classList.add('closed');
+                    await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
+
+                    const neighbors = getNeighbors(cx, cy);
+                    for (const [nx, ny] of neighbors) {
+                        const tentativeGScore = gScore[cy][cx] + 1;
+                        if (tentativeGScore < gScore[ny][nx]) {
+                            cameFrom[`${nx},${ny}`] = [cx, cy];
+                            gScore[ny][nx] = tentativeGScore;
+                            fScore[ny][nx] = gScore[ny][nx] + manhattanDistance(nx, ny, end.x, end.y);
+
+                            if (!openSet.some(([x, y]) => x === nx && y === ny)) {
+                                openSet.push([nx, ny]);
+                                // Visualize open set
+                                if (getCellType(nx, ny) === 'normal') {
+                                    grid[ny][nx].classList.add('open');
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return [visitedCount, []]; // No path found
+            }
+
+            async function dijkstra(visitedCount) {
+                const openSet = [];
+                const cameFrom = {};
+                const gScore = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(Infinity));
+
+                gScore[start.y][start.x] = 0;
+                openSet.push([start.x, start.y]);
+
+                while (openSet.length > 0) {
+                    // Find node with lowest gScore
+                    let lowestIndex = 0;
+                    for (let i = 1; i < openSet.length; i++) {
+                        if (gScore[openSet[i][1]][openSet[i][0]] < gScore[openSet[lowestIndex][1]][openSet[lowestIndex][0]]) {
+                            lowestIndex = i;
+                        }
+                    }
+
+                    const current = openSet.splice(lowestIndex, 1)[0];
+                    const cx = current[0], cy = current[1];
+
+                    visitedCount++;
+                    if (cx === end.x && cy === end.y) {
+                        const path = reconstructPath(cameFrom, current);
+                        return [visitedCount, path];
+                    }
+
+                    // Add to closed set (visualize)
+                    grid[cy][cx].classList.remove('open');
+                    grid[cy][cx].classList.add('closed');
+                    await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
+
+                    const neighbors = getNeighbors(cx, cy);
+                    for (const [nx, ny] of neighbors) {
+                        const tentativeGScore = gScore[cy][cx] + 1;
+                        if (tentativeGScore < gScore[ny][nx]) {
+                            cameFrom[`${nx},${ny}`] = [cx, cy];
+                            gScore[ny][nx] = tentativeGScore;
+
+                            if (!openSet.some(([x, y]) => x === nx && y === ny)) {
+                                openSet.push([nx, ny]);
+                                // Visualize open set
+                                if (getCellType(nx, ny) === 'normal') {
+                                    grid[ny][nx].classList.add('open');
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return [visitedCount, []]; // No path found
+            }
+
+            function reconstructPath(cameFrom, current) {
+                const path = [current];
+                const visited = new Set();
+                visited.add(`${current[0]},${current[1]}`);
+
+                while (cameFrom[`${current[0]},${current[1]}`]) {
+                    current = cameFrom[`${current[0]},${current[1]}`];
+                    if (visited.has(`${current[0]},${current[1]}`)) break;
+                    path.unshift(current);
+                    visited.add(`${current[0]},${current[1]}`);
+                }
+                return path;
+            }
+
+            async function animatePath(path) {
+                for (const [x, y] of path) {
+                    if (x === start.x && y === start.y || x === end.x && y === end.y) continue;
+                    if (getCellType(x, y) === 'closed') {
+                        grid[y][x].classList.remove('closed');
+                        grid[y][x].classList.add('path');
+                    }
+                    await new Promise(resolve => setTimeout(resolve, ANIMATION_DELAY));
+                }
+            }
+
+            // Initialize
+            initGrid();
+        </script>
     </body>
 
 </html>

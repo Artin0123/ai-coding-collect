@@ -1,0 +1,119 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    background-color: #eef2f4;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.control-btn,
+.control-select {
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.control-btn:hover:not(:disabled),
+.control-select:hover:not(:disabled) {
+    background-color: #2980b9;
+}
+
+.control-btn:disabled,
+.control-select:disabled {
+    background-color: #6c717bff;
+    cursor: not-allowed;
+}
+
+.control-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 30px;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2C197.3L159.7%2C69.9c-4.8-4.8-12.5-4.8-17.3%2C0L5.4%2C197.3c-4.8%2C4.8-4.8%2C12.5%2C0%2C17.3l8.7%2C8.7c4.8%2C4.8%2C12.5%2C4.8%2C17.3%2C0l118.8-118.7l118.8%2C118.7c4.8%2C4.8%2C12.5%2C4.8%2C17.3%2C0l8.7-8.7C291.8%2C209.8%2C291.8%2C202.1%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 10px top 50%;
+    background-size: 12px;
+}
+
+.stats {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.stats p {
+    margin: 5px 0;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    border: 1px solid #ccc;
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.grid-cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    background-color: #fdfdfd;
+}
+
+/* Cell States */
+.start {
+    background-color: #4ade80;
+}
+
+.end {
+    background-color: #f87171;
+}
+
+.obstacle {
+    background-color: #34495e;
+}
+
+.open {
+    background-color: #aed6f1;
+}
+
+.closed {
+    background-color: #f5cba7;
+}
+
+.path {
+    background-color: #f1c40f;
+}

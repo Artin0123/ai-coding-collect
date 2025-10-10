@@ -1,226 +1,141 @@
 // 五子棋遊戲邏輯
 class GomokuGame {
     constructor() {
-        this.canvas = document.getElementById('board');
-        this.ctx = this.canvas.getContext('2d');
-        this.restartBtn = document.getElementById('restart-btn');
-        this.currentPlayerSpan = document.getElementById('current-player');
-        this.gameStatusDiv = document.getElementById('game-status');
-
-        // 遊戲設定
-        this.BOARD_SIZE = 15;
-        this.CELL_SIZE = this.canvas.width / (this.BOARD_SIZE + 1);
-        this.STONE_RADIUS = this.CELL_SIZE * 0.4;
-
-        // 遊戲狀態
-        this.board = this.createEmptyBoard();
-        this.currentPlayer = 1; // 1: 黑子（玩家）, 2: 白子（AI）
+        this.boardSize = 15;
+        this.board = Array(this.boardSize).fill(null).map(() => Array(this.boardSize).fill(0));
+        this.currentPlayer = 1; // 1: 黑子(玩家), 2: 白子(AI)
         this.gameOver = false;
-        this.winner = null;
-
-        // 星位位置
-        this.starPoints = [
-            [3, 3], [3, 11], [7, 7], [11, 3], [11, 11]
-        ];
+        this.winningLine = [];
 
         this.init();
     }
 
-    // 初始化遊戲
     init() {
-        this.drawBoard();
+        this.createBoard();
+        this.addStarPositions();
         this.bindEvents();
-        this.updateCurrentPlayer();
+        this.updateCurrentPlayerDisplay();
     }
 
-    // 創建空棋盤
-    createEmptyBoard() {
-        return Array(this.BOARD_SIZE).fill(null).map(() => Array(this.BOARD_SIZE).fill(0));
-    }
+    createBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
 
-    // 繪製棋盤
-    drawBoard() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        for (let row = 0; row < this.boardSize; row++) {
+            for (let col = 0; col < this.boardSize; col++) {
+                const intersection = document.createElement('div');
+                intersection.className = 'intersection';
+                intersection.dataset.row = row;
+                intersection.dataset.col = col;
 
-        // 繪製棋盤線條
-        this.ctx.strokeStyle = '#8B4513';
-        this.ctx.lineWidth = 2;
+                // 計算位置
+                const x = (col / (this.boardSize - 1)) * 100;
+                const y = (row / (this.boardSize - 1)) * 100;
 
-        // 繪製橫線
-        for (let i = 0; i < this.BOARD_SIZE; i++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.CELL_SIZE, this.CELL_SIZE * (i + 1));
-            this.ctx.lineTo(this.canvas.width - this.CELL_SIZE, this.CELL_SIZE * (i + 1));
-            this.ctx.stroke();
-        }
+                intersection.addEventListener('click', (e) => this.handleClick(e, row, col));
 
-        // 繪製豎線
-        for (let i = 0; i < this.BOARD_SIZE; i++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.CELL_SIZE * (i + 1), this.CELL_SIZE);
-            this.ctx.lineTo(this.CELL_SIZE * (i + 1), this.canvas.height - this.CELL_SIZE);
-            this.ctx.stroke();
-        }
-
-        // 繪製星位
-        this.ctx.fillStyle = '#8B4513';
-        this.starPoints.forEach(([row, col]) => {
-            this.ctx.beginPath();
-            this.ctx.arc(
-                this.CELL_SIZE * (col + 1),
-                this.CELL_SIZE * (row + 1),
-                4, 0, 2 * Math.PI
-            );
-            this.ctx.fill();
-        });
-
-        // 繪製棋子
-        this.drawStones();
-    }
-
-    // 繪製棋子
-    drawStones() {
-        for (let row = 0; row < this.BOARD_SIZE; row++) {
-            for (let col = 0; col < this.BOARD_SIZE; col++) {
-                if (this.board[row][col] !== 0) {
-                    this.drawStone(row, col, this.board[row][col]);
-                }
+                board.appendChild(intersection);
             }
         }
     }
 
-    // 繪製單個棋子（包含漸層效果）
-    drawStone(row, col, player) {
-        const centerX = this.CELL_SIZE * (col + 1);
-        const centerY = this.CELL_SIZE * (row + 1);
+    addStarPositions() {
+        const starPositions = [
+            [3, 3], [3, 11], [7, 7], [11, 3], [11, 11]
+        ];
 
-        // 創建漸層
-        const gradient = this.ctx.createRadialGradient(
-            centerX - this.STONE_RADIUS * 0.3,
-            centerY - this.STONE_RADIUS * 0.3,
-            0,
-            centerX,
-            centerY,
-            this.STONE_RADIUS
-        );
+        starPositions.forEach(([row, col]) => {
+            const star = document.createElement('div');
+            star.className = 'star';
 
-        if (player === 1) {
-            // 黑子漸層
-            gradient.addColorStop(0, '#666666');
-            gradient.addColorStop(0.7, '#333333');
-            gradient.addColorStop(1, '#111111');
-        } else {
-            // 白子漸層
-            gradient.addColorStop(0, '#FFFFFF');
-            gradient.addColorStop(0.7, '#E0E0E0');
-            gradient.addColorStop(1, '#CCCCCC');
-        }
+            const intersection = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (intersection) {
+                const rect = intersection.getBoundingClientRect();
+                const boardRect = document.getElementById('board').getBoundingClientRect();
 
-        // 繪製棋子主體
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, this.STONE_RADIUS, 0, 2 * Math.PI);
-        this.ctx.fill();
+                star.style.left = `${((col / (this.boardSize - 1)) * 100)}%`;
+                star.style.top = `${((row / (this.boardSize - 1)) * 100)}%`;
+                star.style.transform = 'translate(-50%, -50%)';
 
-        // 添加邊框
-        this.ctx.strokeStyle = player === 1 ? '#222222' : '#AAAAAA';
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
-
-        // 添加高光效果
-        if (player === 2) { // 白子的高光
-            const highlightGradient = this.ctx.createRadialGradient(
-                centerX - this.STONE_RADIUS * 0.2,
-                centerY - this.STONE_RADIUS * 0.2,
-                0,
-                centerX - this.STONE_RADIUS * 0.2,
-                centerY - this.STONE_RADIUS * 0.2,
-                this.STONE_RADIUS * 0.3
-            );
-            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-            this.ctx.fillStyle = highlightGradient;
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, this.STONE_RADIUS * 0.8, 0, 2 * Math.PI);
-            this.ctx.fill();
-        }
+                document.getElementById('board').appendChild(star);
+            }
+        });
     }
 
-    // 綁定事件
-    bindEvents() {
-        this.canvas.addEventListener('click', (e) => this.handleClick(e));
-        this.restartBtn.addEventListener('click', () => this.restartGame());
-    }
-
-    // 處理點擊事件
-    handleClick(event) {
-        if (this.gameOver || this.currentPlayer !== 1) return;
-
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        const col = Math.round((x - this.CELL_SIZE) / this.CELL_SIZE) - 1;
-        const row = Math.round((y - this.CELL_SIZE) / this.CELL_SIZE) - 1;
-
-        if (this.isValidMove(row, col)) {
-            this.makeMove(row, col);
-        }
-    }
-
-    // 檢查是否為有效移動
-    isValidMove(row, col) {
-        return row >= 0 && row < this.BOARD_SIZE &&
-            col >= 0 && col < this.BOARD_SIZE &&
-            this.board[row][col] === 0;
-    }
-
-    // 下棋
-    makeMove(row, col) {
-        this.board[row][col] = this.currentPlayer;
-        this.drawStone(row, col, this.currentPlayer);
-
-        if (this.checkWin(row, col)) {
-            this.endGame(`恭喜！${this.currentPlayer === 1 ? '黑方' : '白方'}獲勝！`);
+    handleClick(event, row, col) {
+        if (this.gameOver || this.board[row][col] !== 0) {
             return;
         }
 
-        this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
-        this.updateCurrentPlayer();
+        this.placePiece(row, col, this.currentPlayer);
 
-        // 如果是AI的回合
-        if (this.currentPlayer === 2) {
-            setTimeout(() => this.makeAIMove(), 500);
+        if (this.checkWin(row, col, this.currentPlayer)) {
+            this.endGame(`${this.currentPlayer === 1 ? '黑方' : '白方'}獲勝！`);
+            return;
+        }
+
+        if (this.isBoardFull()) {
+            this.endGame('平局！');
+            return;
+        }
+
+        // 切換到AI回合
+        this.currentPlayer = 2;
+        this.updateCurrentPlayerDisplay();
+
+        // AI移動
+        setTimeout(() => {
+            this.aiMove();
+        }, 500);
+    }
+
+    placePiece(row, col, player) {
+        this.board[row][col] = player;
+
+        const intersection = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (intersection) {
+            const piece = document.createElement('div');
+            piece.className = `piece ${player === 1 ? 'black' : 'white'}`;
+            intersection.appendChild(piece);
         }
     }
 
-    // AI下棋
-    makeAIMove() {
+    aiMove() {
+        if (this.gameOver) return;
+
         const move = this.getBestMove();
         if (move) {
-            this.makeMove(move.row, move.col);
+            this.placePiece(move.row, move.col, this.currentPlayer);
+
+            if (this.checkWin(move.row, move.col, this.currentPlayer)) {
+                this.endGame(`${this.currentPlayer === 1 ? '黑方' : '白方'}獲勝！`);
+                return;
+            }
+
+            if (this.isBoardFull()) {
+                this.endGame('平局！');
+                return;
+            }
+
+            // 切換回玩家回合
+            this.currentPlayer = 1;
+            this.updateCurrentPlayerDisplay();
         }
     }
 
-    // 獲取最佳移動
     getBestMove() {
-        // 1. 檢查是否有獲勝機會
-        let winningMove = this.findWinningMove(2);
-        if (winningMove) return winningMove;
-
-        // 2. 阻擋玩家的獲勝機會
-        let blockingMove = this.findWinningMove(1);
-        if (blockingMove) return blockingMove;
-
-        // 3. 評估所有可能的移動
+        // 評估所有可能的移動
         let bestMove = null;
         let bestScore = -Infinity;
 
-        for (let row = 0; row < this.BOARD_SIZE; row++) {
-            for (let col = 0; col < this.BOARD_SIZE; col++) {
+        for (let row = 0; row < this.boardSize; row++) {
+            for (let col = 0; col < this.boardSize; col++) {
                 if (this.board[row][col] === 0) {
-                    const score = this.evaluateMove(row, col);
+                    // 嘗試這個位置
+                    this.board[row][col] = 2;
+                    const score = this.evaluatePosition(row, col);
+                    this.board[row][col] = 0; // 恢復
+
                     if (score > bestScore) {
                         bestScore = score;
                         bestMove = { row, col };
@@ -232,169 +147,161 @@ class GomokuGame {
         return bestMove;
     }
 
-    // 尋找獲勝移動
-    findWinningMove(player) {
-        for (let row = 0; row < this.BOARD_SIZE; row++) {
-            for (let col = 0; col < this.BOARD_SIZE; col++) {
-                if (this.board[row][col] === 0) {
-                    this.board[row][col] = player;
-                    if (this.checkWin(row, col)) {
-                        this.board[row][col] = 0;
-                        return { row, col };
-                    }
-                    this.board[row][col] = 0;
-                }
-            }
-        }
-        return null;
-    }
-
-    // 評估移動分數
-    evaluateMove(row, col) {
+    evaluatePosition(row, col) {
         let score = 0;
 
-        // 中心位置獎勵
+        // 評估四個方向的連線可能性
+        score += this.evaluateDirection(row, col, 0, 1);   // 水平
+        score += this.evaluateDirection(row, col, 1, 0);   // 垂直
+        score += this.evaluateDirection(row, col, 1, 1);   // 對角線1
+        score += this.evaluateDirection(row, col, 1, -1);  // 對角線2
+
+        // 優先考慮中心位置
         const centerDistance = Math.abs(row - 7) + Math.abs(col - 7);
         score += (14 - centerDistance) * 2;
 
-        // 靠近現有棋子獎勵
-        score += this.getNeighborScore(row, col) * 3;
-
-        // 連續棋子獎勵
-        this.board[row][col] = 2;
-        score += this.getLineScore(row, col) * 5;
-        this.board[row][col] = 0;
-
         return score;
     }
 
-    // 獲取鄰近棋子分數
-    getNeighborScore(row, col) {
+    evaluateDirection(row, col, dRow, dCol) {
         let score = 0;
-        for (let i = -2; i <= 2; i++) {
-            for (let j = -2; j <= 2; j++) {
-                if (i === 0 && j === 0) continue;
-                const newRow = row + i;
-                const newCol = col + j;
-                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
-                    newCol >= 0 && newCol < this.BOARD_SIZE &&
-                    this.board[newRow][newCol] !== 0) {
-                    score += 1;
-                }
-            }
-        }
-        return score;
-    }
+        let aiCount = 0;
+        let playerCount = 0;
+        let emptyCount = 0;
 
-    // 獲取連線分數
-    getLineScore(row, col) {
-        let score = 0;
-        const directions = [
-            [0, 1], [1, 0], [1, 1], [1, -1]
-        ];
+        // 正方向
+        for (let i = 1; i <= 4; i++) {
+            const r = row + i * dRow;
+            const c = col + i * dCol;
 
-        directions.forEach(([dx, dy]) => {
-            let count = 1;
-            // 正方向
-            for (let i = 1; i < 5; i++) {
-                const newRow = row + dx * i;
-                const newCol = col + dy * i;
-                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
-                    newCol >= 0 && newCol < this.BOARD_SIZE &&
-                    this.board[newRow][newCol] === 2) {
-                    count++;
-                } else {
-                    break;
-                }
-            }
-            // 反方向
-            for (let i = 1; i < 5; i++) {
-                const newRow = row - dx * i;
-                const newCol = col - dy * i;
-                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
-                    newCol >= 0 && newCol < this.BOARD_SIZE &&
-                    this.board[newRow][newCol] === 2) {
-                    count++;
-                } else {
-                    break;
-                }
-            }
-            score += count * count;
-        });
-
-        return score;
-    }
-
-    // 檢查勝利
-    checkWin(row, col) {
-        const player = this.board[row][col];
-        const directions = [
-            [0, 1], [1, 0], [1, 1], [1, -1]
-        ];
-
-        for (const [dx, dy] of directions) {
-            let count = 1;
-
-            // 正方向檢查
-            for (let i = 1; i < 5; i++) {
-                const newRow = row + dx * i;
-                const newCol = col + dy * i;
-                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
-                    newCol >= 0 && newCol < this.BOARD_SIZE &&
-                    this.board[newRow][newCol] === player) {
-                    count++;
-                } else {
-                    break;
-                }
-            }
-
-            // 反方向檢查
-            for (let i = 1; i < 5; i++) {
-                const newRow = row - dx * i;
-                const newCol = col - dy * i;
-                if (newRow >= 0 && newRow < this.BOARD_SIZE &&
-                    newCol >= 0 && newCol < this.BOARD_SIZE &&
-                    this.board[newRow][newCol] === player) {
-                    count++;
-                } else {
-                    break;
-                }
-            }
-
-            if (count >= 5) {
-                return true;
+            if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize) {
+                const cell = this.board[r][c];
+                if (cell === 2) aiCount++;
+                else if (cell === 1) playerCount++;
+                else emptyCount++;
+            } else {
+                break;
             }
         }
 
-        return false;
+        // 反方向
+        for (let i = 1; i <= 4; i++) {
+            const r = row - i * dRow;
+            const c = col - i * dCol;
+
+            if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize) {
+                const cell = this.board[r][c];
+                if (cell === 2) aiCount++;
+                else if (cell === 1) playerCount++;
+                else emptyCount++;
+            } else {
+                break;
+            }
+        }
+
+        // 評分策略
+        if (aiCount === 4) return 10000; // AI獲勝
+        if (playerCount === 4) return 5000; // 阻止玩家獲勝
+        if (aiCount === 3 && emptyCount >= 1) return 1000; // AI三連
+        if (playerCount === 3 && emptyCount >= 1) return 800; // 阻止玩家三連
+        if (aiCount === 2 && emptyCount >= 2) return 100; // AI兩連
+        if (playerCount === 2 && emptyCount >= 2) return 50; // 阻止玩家兩連
+
+        return score;
     }
 
-    // 更新當前玩家顯示
-    updateCurrentPlayer() {
-        this.currentPlayerSpan.textContent = this.currentPlayer === 1 ? '黑方' : '白方';
-        this.currentPlayerSpan.style.color = this.currentPlayer === 1 ? '#2C3E50' : '#2C3E50';
+    checkWin(row, col, player) {
+        // 檢查四個方向
+        return this.checkDirection(row, col, player, 0, 1) || // 水平
+            this.checkDirection(row, col, player, 1, 0) || // 垂直
+            this.checkDirection(row, col, player, 1, 1) || // 對角線1
+            this.checkDirection(row, col, player, 1, -1);  // 對角線2
     }
 
-    // 結束遊戲
+    checkDirection(row, col, player, dRow, dCol) {
+        let count = 1; // 當前位置
+
+        // 正方向
+        for (let i = 1; i <= 4; i++) {
+            const r = row + i * dRow;
+            const c = col + i * dCol;
+
+            if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize &&
+                this.board[r][c] === player) {
+                count++;
+            } else {
+                break;
+            }
+        }
+
+        // 反方向
+        for (let i = 1; i <= 4; i++) {
+            const r = row - i * dRow;
+            const c = col - i * dCol;
+
+            if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize &&
+                this.board[r][c] === player) {
+                count++;
+            } else {
+                break;
+            }
+        }
+
+        return count >= 5;
+    }
+
+    isBoardFull() {
+        for (let row = 0; row < this.boardSize; row++) {
+            for (let col = 0; col < this.boardSize; col++) {
+                if (this.board[row][col] === 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     endGame(message) {
         this.gameOver = true;
-        this.winner = this.currentPlayer;
-        this.gameStatusDiv.textContent = message;
+
+        const statusDiv = document.getElementById('game-status');
+        statusDiv.textContent = message;
+        statusDiv.className = message.includes('獲勝') ? 'game-status win' : 'game-status draw';
+        statusDiv.style.display = 'block';
     }
 
-    // 重新開始遊戲
-    restartGame() {
-        this.board = this.createEmptyBoard();
+    updateCurrentPlayerDisplay() {
+        const playerDisplay = document.getElementById('current-player');
+        playerDisplay.textContent = this.currentPlayer === 1 ? '黑方' : '白方';
+        playerDisplay.style.color = this.currentPlayer === 1 ? '#2C3E50' : '#7F8C8D';
+    }
+
+    restart() {
+        this.board = Array(this.boardSize).fill(null).map(() => Array(this.boardSize).fill(0));
         this.currentPlayer = 1;
         this.gameOver = false;
-        this.winner = null;
-        this.gameStatusDiv.textContent = '';
-        this.drawBoard();
-        this.updateCurrentPlayer();
+        this.winningLine = [];
+
+        // 清空棋盤
+        const intersections = document.querySelectorAll('.intersection');
+        intersections.forEach(intersection => {
+            intersection.innerHTML = '';
+        });
+
+        // 隱藏遊戲狀態
+        const statusDiv = document.getElementById('game-status');
+        statusDiv.style.display = 'none';
+
+        this.updateCurrentPlayerDisplay();
+    }
+
+    bindEvents() {
+        const restartBtn = document.getElementById('restart-btn');
+        restartBtn.addEventListener('click', () => this.restart());
     }
 }
 
-// 當頁面載入完成後啟動遊戲
+// 遊戲初始化
 document.addEventListener('DOMContentLoaded', () => {
     new GomokuGame();
 });

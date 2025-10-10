@@ -1,0 +1,46 @@
+body{
+margin:0;
+font-family:"Noto Sans TC",sans-serif;
+background:#F5E6D3;
+color:#2c1904;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+}
+.app{
+text-align:center;
+}
+.app h1{
+margin-bottom:12px;
+}
+.status{
+margin-bottom:16px;
+font-size:18px;
+font-weight:600;
+}
+#board{
+background:#DEB887;
+border:8px solid #8B4513;
+box-shadow:0 8px 16px rgba(0,0,0,.2);
+display:block;
+margin:0 auto 20px;
+}
+#reset{
+padding:10px 24px;
+font-size:16px;
+background:#4A90E2;
+color:#FFFFFF;
+border:none;
+border-radius:6px;
+cursor:pointer;
+transition:transform .15s ease,box-shadow .15s ease;
+}
+#reset:hover{
+transform:translateY(-2px);
+box-shadow:0 6px 12px rgba(0,0,0,.2);
+}
+#reset:active{
+transform:translateY(0);
+box-shadow:0 4px 8px rgba(0,0,0,.18);
+}

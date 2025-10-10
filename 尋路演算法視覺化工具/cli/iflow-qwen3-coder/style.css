@@ -1,31 +1,36 @@
-/* 基本樣式 */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #eef2f4;
     margin: 0;
     padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
 .container {
-    max-width: 1000px;
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
 }
 
 h1 {
-    text-align: center;
     color: #2c3e50;
+    margin-bottom: 20px;
 }
 
-/* 控制面板樣式 */
 .control-panel {
     display: flex;
-    justify-content: center;
     gap: 10px;
     margin-bottom: 20px;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
-.control-panel button {
+.control-btn {
     background-color: #3498db;
     color: #ffffff;
     border: none;
@@ -33,77 +38,69 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
-    min-width: 80px;
+    transition: background-color 0.3s;
 }
 
-.control-panel button:hover:not(:disabled) {
+.control-btn:hover:not(:disabled) {
     background-color: #2980b9;
 }
 
-.control-panel button:disabled {
+.control-btn:disabled {
     background-color: #6c717bff;
     cursor: not-allowed;
 }
 
-.control-panel select {
-    padding: 10px;
+.control-select {
+    padding: 10px 15px;
     border-radius: 4px;
     border: 1px solid #ccc;
-    background-color: white;
-    min-width: 100px;
+    background-color: #ffffff;
+    font-size: 14px;
 }
 
-/* 統計資訊樣式 */
-.stats {
-    text-align: center;
-    color: #2c3e50;
+.stats-panel {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
     margin-bottom: 20px;
-    font-size: 16px;
-    line-height: 1.6;
+    width: 100%;
+    max-width: 600px;
+    color: #2c3e50;
+    font-size: 14px;
 }
 
-.stats p {
-    margin: 5px 0;
-}
-
-.stats span {
-    font-weight: bold;
-}
-
-/* 網格容器樣式 */
 .grid-container {
     display: flex;
     justify-content: center;
+    width: 100%;
 }
 
-#grid {
+.grid {
     display: grid;
-    grid-template-columns: repeat(25, 20px);
-    grid-template-rows: repeat(25, 20px);
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
     gap: 0;
     border: 2px solid #34495e;
     background-color: #fdfdfd;
 }
 
-/* 單元格樣式 */
 .cell {
-    width: 20px;
-    height: 20px;
+    width: 30px;
+    height: 30px;
     border: 1px solid #ccc;
     box-sizing: border-box;
-    transition: background-color 0.1s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
 .cell:hover {
-    filter: brightness(85%);
+    opacity: 0.8;
 }
 
-/* 動畫效果 */
-.cell.open, .cell.closed, .cell.path {
-    transition: background-color 0.15s ease;
-}
-
-/* 不同狀態的格子顏色 */
 .cell.start {
     background-color: #4ade80;
 }
@@ -126,4 +123,20 @@ h1 {
 
 .cell.path {
     background-color: #f1c40f;
+}
+
+@media (max-width: 768px) {
+    .stats-panel {
+        grid-template-columns: 1fr;
+    }
+    
+    .control-panel {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .control-btn, .control-select {
+        width: 100%;
+        max-width: 200px;
+    }
 }

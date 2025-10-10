@@ -1,388 +1,324 @@
-// Grid and settings
-const ROWS = 25;
-const COLS = 25;
-const CELL_SIZE = 20; // px
-const STEP_DELAY = 5; // ms per step animation
+const GRID_SIZE = 15;
+const CELL_SIZE = 30; // px
+const ANIMATION_SPEED = 10; // ms
 
-const gridEl = document.getElementById('grid');
-const messageEl = document.getElementById('message');
-const visitedCountEl = document.getElementById('visited-count');
-const pathLengthEl = document.getElementById('path-length');
-const elapsedEl = document.getElementById('elapsed-ms');
-const statusEl = document.getElementById('status');
+const gridContainer = document.getElementById('grid-container');
+const setStartBtn = document.getElementById('setStartBtn');
+const setEndBtn = document.getElementById('setEndBtn');
+const clearPathBtn = document.getElementById('clearPathBtn');
+const resetGridBtn = document.getElementById('resetGridBtn');
+const algorithmSelect = document.getElementById('algorithmSelect');
+const startSearchBtn = document.getElementById('startSearchBtn');
 
-const btnSetStart = document.getElementById('set-start');
-const btnSetEnd = document.getElementById('set-end');
-const btnClearPath = document.getElementById('clear-path');
-const btnResetAll = document.getElementById('reset-all');
-const btnStartSearch = document.getElementById('start-search');
-const algorithmSelect = document.getElementById('algorithm');
+const visitedNodesSpan = document.getElementById('visitedNodes');
+const pathLengthSpan = document.getElementById('pathLength');
+const executionTimeSpan = document.getElementById('executionTime');
+const statusSpan = document.getElementById('status');
 
-let cells = []; // 2D array of cell objects
-let isMouseDown = false;
-let placingWalls = false;
-let mode = null; // 'setStart' | 'setEnd' | null
-let running = false;
+let grid = [];
+let startNode = null;
+let endNode = null;
+let isSettingStart = false;
+let isSettingEnd = false;
+let isDrawingObstacles = false;
+let isAnimating = false;
 
-// default positions
-let startPos = { r: 2, c: 2 };
-let endPos = { r: 22, c: 22 };
+// Node class for pathfinding
+class Node {
+    constructor(row, col) {
+        this.row = row;
+        this.col = col;
+        this.status = 'empty'; // 'empty', 'start', 'end', 'obstacle', 'open', 'closed', 'path'
+        this.gCost = Infinity; // Cost from start to this node
+        this.hCost = Infinity; // Heuristic cost from this node to end
+        this.fCost = Infinity; // Total cost (gCost + hCost)
+        this.parent = null; // Parent node in the path
+        this.element = document.createElement('div');
+        this.element.classList.add('grid-cell');
+        this.element.dataset.row = row;
+        this.element.dataset.col = col;
+    }
 
-function createGrid() {
-    gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL_SIZE}px)`;
-    gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${CELL_SIZE}px)`;
-    cells = [];
-    gridEl.innerHTML = '';
+    updateStatus(newStatus) {
+        this.element.classList.remove(this.status);
+        this.status = newStatus;
+        this.element.classList.add(newStatus);
+    }
+}
 
-    for (let r = 0; r < ROWS; r++) {
+// Initialize the grid
+function initializeGrid() {
+    gridContainer.innerHTML = '';
+    grid = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
         const row = [];
-        for (let c = 0; c < COLS; c++) {
-            const el = document.createElement('div');
-            el.className = 'cell';
-            el.dataset.r = r;
-            el.dataset.c = c;
-            el.title = `${r},${c}`;
-
-            el.addEventListener('mousedown', onCellMouseDown);
-            el.addEventListener('mouseenter', onCellMouseEnter);
-            el.addEventListener('mouseup', onCellMouseUp);
-            el.addEventListener('click', onCellClick);
-
-            gridEl.appendChild(el);
-
-            row.push({ el, r, c, isWall: false, parent: null });
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const node = new Node(r, c);
+            gridContainer.appendChild(node.element);
+            row.push(node);
         }
-        cells.push(row);
+        grid.push(row);
     }
 
-    setStart(startPos.r, startPos.c);
-    setEnd(endPos.r, endPos.c);
+    // Set default start and end nodes
+    startNode = grid[2][2];
+    endNode = grid[12][12];
+    startNode.updateStatus('start');
+    endNode.updateStatus('end');
+
+    addGridEventListeners();
+    updateStats(0, 0, 0, '就緒');
 }
 
-function setStart(r, c) {
-    // clear previous
-    const prev = findCellByClass('start');
-    if (prev) prev.classList.remove('start');
-    startPos = { r, c };
-    const cell = cells[r][c];
-    cell.isWall = false;
-    cell.el.classList.remove('wall', 'end', 'open', 'closed', 'path');
-    cell.el.classList.add('start');
+// Add event listeners for grid interaction
+function addGridEventListeners() {
+    gridContainer.addEventListener('mousedown', (e) => {
+        if (isAnimating) return;
+        const target = e.target.closest('.grid-cell');
+        if (!target) return;
+
+        const row = parseInt(target.dataset.row);
+        const col = parseInt(target.dataset.col);
+        const node = grid[row][col];
+
+        if (isSettingStart) {
+            if (node.status === 'obstacle') return;
+            if (startNode) startNode.updateStatus('empty');
+            startNode = node;
+            startNode.updateStatus('start');
+            isSettingStart = false;
+            setStartBtn.classList.remove('active');
+        } else if (isSettingEnd) {
+            if (node.status === 'obstacle') return;
+            if (endNode) endNode.updateStatus('empty');
+            endNode = node;
+            endNode.updateStatus('end');
+            isSettingEnd = false;
+            setEndBtn.classList.remove('active');
+        } else {
+            if (node !== startNode && node !== endNode) {
+                isDrawingObstacles = true;
+                node.updateStatus(node.status === 'obstacle' ? 'empty' : 'obstacle');
+            }
+        }
+    });
+
+    gridContainer.addEventListener('mouseover', (e) => {
+        if (isAnimating || !isDrawingObstacles) return;
+        const target = e.target.closest('.grid-cell');
+        if (!target) return;
+
+        const row = parseInt(target.dataset.row);
+        const col = parseInt(target.dataset.col);
+        const node = grid[row][col];
+
+        if (node !== startNode && node !== endNode) {
+            node.updateStatus('obstacle');
+        }
+    });
+
+    gridContainer.addEventListener('mouseup', () => {
+        isDrawingObstacles = false;
+    });
+
+    gridContainer.addEventListener('mouseleave', () => {
+        isDrawingObstacles = false;
+    });
 }
 
-function setEnd(r, c) {
-    const prev = findCellByClass('end');
-    if (prev) prev.classList.remove('end');
-    endPos = { r, c };
-    const cell = cells[r][c];
-    cell.isWall = false;
-    cell.el.classList.remove('wall', 'start', 'open', 'closed', 'path');
-    cell.el.classList.add('end');
-}
+// Control button event listeners
+setStartBtn.addEventListener('click', () => {
+    if (isAnimating) return;
+    isSettingStart = !isSettingStart;
+    isSettingEnd = false;
+    setStartBtn.classList.toggle('active', isSettingStart);
+    setEndBtn.classList.remove('active');
+});
 
-function findCellByClass(cls) {
-    return gridEl.querySelector('.cell.' + cls);
-}
+setEndBtn.addEventListener('click', () => {
+    if (isAnimating) return;
+    isSettingEnd = !isSettingEnd;
+    isSettingStart = false;
+    setEndBtn.classList.toggle('active', isSettingEnd);
+    setStartBtn.classList.remove('active');
+});
 
-function onCellMouseDown(e) {
-    // only left button
-    if (e.button !== 0) return;
-    if (running) return;
-    isMouseDown = true;
-    const r = +this.dataset.r; const c = +this.dataset.c;
+clearPathBtn.addEventListener('click', () => {
+    if (isAnimating) return;
+    clearPath();
+});
 
-    if (mode === 'setStart') {
-        setStart(r, c);
-        mode = null; btnSetStart.classList.remove('active');
-        messageEl.textContent = '';
-        return;
-    }
-    if (mode === 'setEnd') {
-        setEnd(r, c);
-        mode = null; btnSetEnd.classList.remove('active');
-        messageEl.textContent = '';
-        return;
-    }
+resetGridBtn.addEventListener('click', () => {
+    if (isAnimating) return;
+    initializeGrid();
+});
 
-    // toggle wall on click
-    toggleWall(r, c);
-    placingWalls = true;
-}
+startSearchBtn.addEventListener('click', () => {
+    if (isAnimating) return;
+    startPathfinding();
+});
 
-function onCellMouseEnter(e) {
-    if (!isMouseDown || !placingWalls) return;
-    if (running) return;
-    const r = +this.dataset.r; const c = +this.dataset.c;
-    toggleWall(r, c, true);
-}
-
-function onCellMouseUp(e) {
-    isMouseDown = false;
-    placingWalls = false;
-}
-
-function onCellClick(e) {
-    // prevent single clicks while setting start/end
-}
-
-function toggleWall(r, c, forceSet = false) {
-    const cell = cells[r][c];
-    // don't allow on start or end
-    if ((r === startPos.r && c === startPos.c) || (r === endPos.r && c === endPos.c)) return;
-    cell.isWall = forceSet ? true : !cell.isWall;
-    cell.el.classList.toggle('wall', cell.isWall);
-}
-
-// disable/enable controls during run
-function setRunning(val) {
-    running = val;
-    const disabled = val;
-    [btnSetStart, btnSetEnd, btnClearPath, btnResetAll, btnStartSearch, algorithmSelect].forEach(el => el.disabled = disabled);
-}
-
-// clear path and search markers
+// Clear path and search results
 function clearPath() {
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            const cell = cells[r][c];
-            cell.parent = null;
-            cell.el.classList.remove('open', 'closed', 'path');
-        }
-    }
-    visitedCountEl.textContent = '0';
-    pathLengthEl.textContent = '0';
-    elapsedEl.textContent = '0';
-    messageEl.textContent = '';
-    statusEl.textContent = '就緒';
-}
-
-function resetAll() {
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-            const cell = cells[r][c];
-            cell.isWall = false; cell.parent = null;
-            cell.el.className = 'cell';
-        }
-    }
-    setStart(2, 2);
-    setEnd(22, 22);
-    clearPath();
-}
-
-// helpers for neighbors
-function neighbors(r, c) {
-    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    const res = [];
-    for (const [dr, dc] of dirs) {
-        const nr = r + dr, nc = c + dc;
-        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) res.push(cells[nr][nc]);
-    }
-    return res;
-}
-
-function manhattan(a, b) {
-    return Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
-}
-
-// A* algorithm - returns {visitedOrder:[], path:[], visitedCount, timeMs}
-function astar(start, end) {
-    const open = new Map(); // key -> node
-    const openHeap = [];
-    const closed = new Set();
-
-    function push(node, f) { open.set(`${node.r},${node.c}`, node); openHeap.push({ f, node }); }
-    function pop() { let idx = 0; for (let i = 1; i < openHeap.length; i++) { if (openHeap[i].f < openHeap[idx].f) idx = i; } const it = openHeap.splice(idx, 1)[0]; if (it) open.delete(`${it.node.r},${it.node.c}`); return it ? it.node : null; }
-
-    const gScore = Array.from({ length: ROWS }, () => Array(COLS, Infinity));
-    const fScore = Array.from({ length: ROWS }, () => Array(COLS, Infinity));
-
-    const visitedOrder = [];
-
-    gScore[start.r][start.c] = 0;
-    fScore[start.r][start.c] = manhattan(start, end);
-    push(start, fScore[start.r][start.c]);
-
-    while (openHeap.length) {
-        const current = pop();
-        closed.add(`${current.r},${current.c}`);
-        visitedOrder.push({ r: current.r, c: current.c, type: 'closed' });
-        if (current.r === end.r && current.c === end.c) break;
-
-        for (const nb of neighbors(current.r, current.c)) {
-            if (nb.isWall) continue;
-            if (closed.has(`${nb.r},${nb.c}`)) continue;
-
-            const tentative = gScore[current.r][current.c] + 1;
-            if (tentative < gScore[nb.r][nb.c]) {
-                nb.parent = current;
-                gScore[nb.r][nb.c] = tentative;
-                fScore[nb.r][nb.c] = tentative + manhattan(nb, end);
-                if (!open.has(`${nb.r},${nb.c}`)) {
-                    push(nb, fScore[nb.r][nb.c]);
-                    visitedOrder.push({ r: nb.r, c: nb.c, type: 'open' });
-                }
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            const node = grid[r][c];
+            if (node.status === 'open' || node.status === 'closed' || node.status === 'path') {
+                node.updateStatus('empty');
             }
+            node.gCost = Infinity;
+            node.hCost = Infinity;
+            node.fCost = Infinity;
+            node.parent = null;
         }
     }
-
-    // reconstruct path
-    const path = [];
-    let node = cells[end.r][end.c];
-    if (node.parent || (node.r === start.r && node.c === start.c)) {
-        while (node) { path.push({ r: node.r, c: node.c }); node = node.parent; }
-        path.reverse();
-    }
-
-    return { visitedOrder, path };
+    updateStats(0, 0, 0, '就緒');
 }
 
-// Dijkstra: same as A* but heuristic 0
-function dijkstra(start, end) {
-    // reuse astar but with manhattan=0
-    // We'll implement similarly but with f=g
-    const open = new Map();
-    const openHeap = [];
-    const closed = new Set();
-
-    function push(node, f) { open.set(`${node.r},${node.c}`, node); openHeap.push({ f, node }); }
-    function pop() { let idx = 0; for (let i = 1; i < openHeap.length; i++) { if (openHeap[i].f < openHeap[idx].f) idx = i; } const it = openHeap.splice(idx, 1)[0]; if (it) open.delete(`${it.node.r},${it.node.c}`); return it ? it.node : null; }
-
-    const gScore = Array.from({ length: ROWS }, () => Array(COLS, Infinity));
-
-    const visitedOrder = [];
-
-    gScore[start.r][start.c] = 0;
-    push(start, 0);
-
-    while (openHeap.length) {
-        const current = pop();
-        closed.add(`${current.r},${current.c}`);
-        visitedOrder.push({ r: current.r, c: current.c, type: 'closed' });
-        if (current.r === end.r && current.c === end.c) break;
-
-        for (const nb of neighbors(current.r, current.c)) {
-            if (nb.isWall) continue;
-            if (closed.has(`${nb.r},${nb.c}`)) continue;
-
-            const tentative = gScore[current.r][current.c] + 1;
-            if (tentative < gScore[nb.r][nb.c]) {
-                nb.parent = current;
-                gScore[nb.r][nb.c] = tentative;
-                if (!open.has(`${nb.r},${nb.c}`)) {
-                    push(nb, gScore[nb.r][nb.c]);
-                    visitedOrder.push({ r: nb.r, c: nb.c, type: 'open' });
-                }
-            }
-        }
-    }
-
-    const path = [];
-    let node = cells[end.r][end.c];
-    if (node.parent || (node.r === start.r && node.c === start.c)) {
-        while (node) { path.push({ r: node.r, c: node.c }); node = node.parent; }
-        path.reverse();
-    }
-
-    return { visitedOrder, path };
+// Update statistics display
+function updateStats(visited, length, time, status) {
+    visitedNodesSpan.textContent = visited;
+    pathLengthSpan.textContent = length;
+    executionTimeSpan.textContent = time;
+    statusSpan.textContent = status;
 }
 
-// animate a sequence of visited nodes then path
-async function animateSearch(result) {
+// Get neighbors of a node
+function getNeighbors(node) {
+    const neighbors = [];
+    const { row, col } = node;
+
+    // Up, Down, Left, Right
+    if (row > 0) neighbors.push(grid[row - 1][col]);
+    if (row < GRID_SIZE - 1) neighbors.push(grid[row + 1][col]);
+    if (col > 0) neighbors.push(grid[row][col - 1]);
+    if (col < GRID_SIZE - 1) neighbors.push(grid[row][col + 1]);
+
+    return neighbors.filter(neighbor => neighbor.status !== 'obstacle');
+}
+
+// Manhattan distance heuristic
+function manhattanDistance(nodeA, nodeB) {
+    return Math.abs(nodeA.row - nodeB.row) + Math.abs(nodeA.col - nodeB.col);
+}
+
+// Pathfinding algorithms
+async function startPathfinding() {
     clearPath();
-    statusEl.textContent = '搜尋中';
-    const visitedOrder = result.visitedOrder;
+    isAnimating = true;
+    toggleControls(false);
+    updateStats(0, 0, 0, '搜尋中');
 
-    let visitedCount = 0;
     const startTime = performance.now();
+    const algorithm = algorithmSelect.value;
 
-    for (let i = 0; i < visitedOrder.length; i++) {
-        const it = visitedOrder[i];
-        // skip start and end styling changes
-        if ((it.r === startPos.r && it.c === startPos.c) || (it.r === endPos.r && it.c === endPos.c)) continue;
-        const el = cells[it.r][it.c].el;
-        if (it.type === 'open') el.classList.add('open');
-        else el.classList.add('closed');
-        visitedCount++;
-        visitedCountEl.textContent = visitedCount;
-        // small delay
-        await new Promise(res => setTimeout(res, STEP_DELAY));
+    let pathFound = false;
+    let visitedNodesCount = 0;
+    let finalPathLength = 0;
+
+    if (!startNode || !endNode) {
+        alert('請設定起點和終點！');
+        isAnimating = false;
+        toggleControls(true);
+        updateStats(0, 0, 0, '就緒');
+        return;
     }
 
-    const path = result.path;
+    if (startNode.status === 'obstacle' || endNode.status === 'obstacle') {
+        alert('起點或終點不能是障礙物！');
+        isAnimating = false;
+        toggleControls(true);
+        updateStats(0, 0, 0, '就緒');
+        return;
+    }
+
+    // Initialize start node
+    startNode.gCost = 0;
+    startNode.hCost = manhattanDistance(startNode, endNode);
+    startNode.fCost = startNode.gCost + startNode.hCost;
+
+    const openList = [startNode];
+    const closedList = [];
+
+    while (openList.length > 0) {
+        // Find node with lowest fCost in openList
+        openList.sort((a, b) => a.fCost - b.fCost);
+        let currentNode = openList.shift();
+
+        if (currentNode === endNode) {
+            pathFound = true;
+            break;
+        }
+
+        closedList.push(currentNode);
+        if (currentNode !== startNode) {
+            currentNode.updateStatus('closed');
+            await new Promise(resolve => setTimeout(resolve, ANIMATION_SPEED));
+        }
+        visitedNodesCount++;
+
+        const neighbors = getNeighbors(currentNode);
+        for (const neighbor of neighbors) {
+            if (closedList.includes(neighbor)) continue;
+
+            const tentativeGCost = currentNode.gCost + 1; // Assuming cost of 1 for each step
+
+            if (tentativeGCost < neighbor.gCost) {
+                neighbor.parent = currentNode;
+                neighbor.gCost = tentativeGCost;
+                neighbor.hCost = (algorithm === 'astar') ? manhattanDistance(neighbor, endNode) : 0;
+                neighbor.fCost = neighbor.gCost + neighbor.hCost;
+
+                if (!openList.includes(neighbor)) {
+                    openList.push(neighbor);
+                    if (neighbor !== endNode) {
+                        neighbor.updateStatus('open');
+                        await new Promise(resolve => setTimeout(resolve, ANIMATION_SPEED));
+                    }
+                }
+            }
+        }
+    }
+
     const endTime = performance.now();
-    elapsedEl.textContent = Math.round(endTime - startTime);
+    const duration = (endTime - startTime).toFixed(2);
 
-    if (!path || path.length === 0) {
-        statusEl.textContent = '無路徑';
-        messageEl.textContent = '無法找到路徑';
-        // do not re-enable here if startSearch manages running state; but ensure it gets disabled
-        setRunning(false);
-        return;
+    if (pathFound) {
+        let temp = endNode;
+        let path = [];
+        while (temp !== null) {
+            path.push(temp);
+            temp = temp.parent;
+        }
+        path.reverse();
+        finalPathLength = path.length - 1; // Exclude start node
+
+        for (let i = 0; i < path.length; i++) {
+            const node = path[i];
+            if (node !== startNode && node !== endNode) {
+                node.updateStatus('path');
+                await new Promise(resolve => setTimeout(resolve, ANIMATION_SPEED));
+            }
+        }
+        updateStats(visitedNodesCount, finalPathLength, duration, '找到路徑');
+    } else {
+        updateStats(visitedNodesCount, 0, duration, '無路徑');
+        alert('無法找到路徑');
     }
 
-    // show path
-    statusEl.textContent = '找到路徑';
-    for (let i = 0; i < path.length; i++) {
-        const p = path[i];
-        if ((p.r === startPos.r && p.c === startPos.c) || (p.r === endPos.r && p.c === endPos.c)) continue;
-        cells[p.r][p.c].el.classList.add('path');
-        pathLengthEl.textContent = path.length - 1;
-        await new Promise(res => setTimeout(res, STEP_DELAY));
-    }
-
-    setRunning(false);
+    isAnimating = false;
+    toggleControls(true);
 }
 
-// main start function
-async function startSearch() {
-    if (running) return;
-    setRunning(true);
-    // set parent null for all
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) cells[r][c].parent = null;
-
-    const s = cells[startPos.r][startPos.c];
-    const e = cells[endPos.r][endPos.c];
-
-    const alg = algorithmSelect.value;
-    let result;
-    try {
-        if (alg === 'astar') result = astar(s, e);
-        else result = dijkstra(s, e);
-    } catch (err) {
-        console.error(err);
-        messageEl.textContent = '演算法錯誤';
-        return;
-    }
-
-    await animateSearch(result);
+// Toggle control buttons disabled state
+function toggleControls(enable) {
+    setStartBtn.disabled = !enable;
+    setEndBtn.disabled = !enable;
+    clearPathBtn.disabled = !enable;
+    resetGridBtn.disabled = !enable;
+    algorithmSelect.disabled = !enable;
+    startSearchBtn.disabled = !enable;
 }
 
-// UI wiring
-btnSetStart.addEventListener('click', () => {
-    if (running) return;
-    if (mode === 'setStart') {
-        mode = null; btnSetStart.classList.remove('active'); messageEl.textContent = '';
-    } else {
-        mode = 'setStart'; btnSetStart.classList.add('active'); btnSetEnd.classList.remove('active'); messageEl.textContent = '點擊網格設定起點';
-    }
-});
-btnSetEnd.addEventListener('click', () => {
-    if (running) return;
-    if (mode === 'setEnd') {
-        mode = null; btnSetEnd.classList.remove('active'); messageEl.textContent = '';
-    } else {
-        mode = 'setEnd'; btnSetEnd.classList.add('active'); btnSetStart.classList.remove('active'); messageEl.textContent = '點擊網格設定終點';
-    }
-});
-btnClearPath.addEventListener('click', () => { if (running) return; clearPath(); });
-btnResetAll.addEventListener('click', () => { if (running) return; resetAll(); });
-btnStartSearch.addEventListener('click', () => { startSearch(); });
-
-// global mouseup to stop dragging
-document.addEventListener('mouseup', () => { isMouseDown = false; placingWalls = false; });
-
-// prevent context menu on grid to avoid right-click issues
-gridEl.addEventListener('contextmenu', (e) => e.preventDefault());
-
-// init
-createGrid();
+// Initial setup
+initializeGrid();

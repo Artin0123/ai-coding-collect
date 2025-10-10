@@ -1,0 +1,122 @@
+/* 背景色使用 #eef2f4 */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #eef2f4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    text-align: center;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    max-width: 800px;
+    width: 100%;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+/* Grid Container */
+.grid-container {
+    display: inline-grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    gap: 1px;
+    margin: 20px auto;
+    background-color: #ccc;
+    border: 1px solid #ccc;
+    padding: 2px;
+}
+
+.grid-cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Cell Colors */
+.cell-default { background-color: #fdfdfd; }
+.cell-start { background-color: #4ade80; } /* 綠色 */
+.cell-end { background-color: #f87171; } /* 紅色 */
+.cell-obstacle { background-color: #34495e; } /* 深灰色 */
+.cell-open { background-color: #aed6f1; } /* 淡藍色 */
+.cell-closed { background-color: #f5cba7; } /* 淡橘色 */
+.cell-path { background-color: #f1c40f; } /* 黃色 */
+
+/* Control Panel */
+.control-panel {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.control-panel button,
+.control-panel select {
+    padding: 10px 15px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.control-panel button {
+    background-color: #3498db; /* 藍色 */
+    color: white;
+    min-width: 100px;
+}
+
+.control-panel button:disabled {
+    background-color: #6c717b; /* 禁用狀態 */
+    cursor: not-allowed;
+}
+
+.control-panel select {
+    background-color: #3498db;
+    color: white;
+    min-width: 100px;
+}
+
+/* Statistics Display */
+.stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+    color: #2c3e50;
+    font-weight: bold;
+    flex-wrap: wrap;
+}
+
+.stats div {
+    margin: 5px 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .control-panel {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .stats {
+        flex-direction: column;
+    }
+    
+    .grid-container {
+        transform: scale(0.8);
+    }
+}

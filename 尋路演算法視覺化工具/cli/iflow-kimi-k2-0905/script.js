@@ -1,21 +1,21 @@
 class PathfindingVisualizer {
     constructor() {
-        this.gridSize = 25;
-        this.cellSize = 20;
-        this.start = { x: 2, y: 2 };
-        this.end = { x: 22, y: 22 };
+        this.gridSize = 15;
         this.grid = [];
+        this.startNode = { x: 2, y: 2 };
+        this.endNode = { x: 12, y: 12 };
         this.isMouseDown = false;
-        this.mode = 'normal'; // normal, setStart, setEnd
+        this.isDragging = false;
+        this.currentMode = 'obstacle'; // 'obstacle', 'start', 'end'
         this.isAnimating = false;
-        this.animationSpeed = 10;
+        this.animationSpeed = 10; // ms per step
         
         this.initializeGrid();
         this.setupEventListeners();
         this.renderGrid();
         this.updateStats();
     }
-    
+
     initializeGrid() {
         this.grid = [];
         for (let y = 0; y < this.gridSize; y++) {
@@ -25,467 +25,473 @@ class PathfindingVisualizer {
                     x: x,
                     y: y,
                     isObstacle: false,
-                    isStart: false,
-                    isEnd: false,
+                    isStart: x === this.startNode.x && y === this.startNode.y,
+                    isEnd: x === this.endNode.x && y === this.endNode.y,
                     isOpen: false,
                     isClosed: false,
                     isPath: false,
-                    g: 0,
-                    h: 0,
-                    f: 0,
+                    gCost: Infinity,
+                    hCost: 0,
+                    fCost: Infinity,
                     parent: null
                 };
             }
         }
-        
-        // Set default start and end points
-        this.grid[this.start.y][this.start.x].isStart = true;
-        this.grid[this.end.y][this.end.x].isEnd = true;
     }
-    
+
     setupEventListeners() {
         const gridElement = document.getElementById('grid');
-        const setStartBtn = document.getElementById('setStart');
-        const setEndBtn = document.getElementById('setEnd');
-        const clearPathBtn = document.getElementById('clearPath');
-        const resetBtn = document.getElementById('reset');
-        const startSearchBtn = document.getElementById('startSearch');
         
-        // Grid mouse events
+        // Mouse events for grid interaction
         gridElement.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         gridElement.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         gridElement.addEventListener('mouseup', () => this.handleMouseUp());
         gridElement.addEventListener('mouseleave', () => this.handleMouseUp());
         
-        // Button events
-        setStartBtn.addEventListener('click', () => this.setMode('setStart'));
-        setEndBtn.addEventListener('click', () => this.setMode('setEnd'));
-        clearPathBtn.addEventListener('click', () => this.clearPath());
-        resetBtn.addEventListener('click', () => this.reset());
-        startSearchBtn.addEventListener('click', () => this.startSearch());
-        
-        // Prevent context menu
+        // Prevent context menu on grid
         gridElement.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // Control panel buttons
+        document.getElementById('setStart').addEventListener('click', () => this.setMode('start'));
+        document.getElementById('setEnd').addEventListener('click', () => this.setMode('end'));
+        document.getElementById('clearPath').addEventListener('click', () => this.clearPath());
+        document.getElementById('reset').addEventListener('click', () => this.resetGrid());
+        document.getElementById('startSearch').addEventListener('click', () => this.startPathfinding());
     }
-    
+
     handleMouseDown(e) {
         if (this.isAnimating) return;
         
-        const rect = e.target.closest('.grid').getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / (this.cellSize + 1));
-        const y = Math.floor((e.clientY - rect.top) / (this.cellSize + 1));
+        const cell = e.target;
+        if (!cell.classList.contains('cell')) return;
         
-        if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) return;
+        this.isMouseDown = true;
+        const x = parseInt(cell.dataset.x);
+        const y = parseInt(cell.dataset.y);
         
-        const cell = this.grid[y][x];
-        
-        if (this.mode === 'setStart') {
-            this.setStartPoint(x, y);
-            this.setMode('normal');
-            return;
-        }
-        
-        if (this.mode === 'setEnd') {
-            this.setEndPoint(x, y);
-            this.setMode('normal');
-            return;
-        }
-        
-        if (!cell.isStart && !cell.isEnd) {
-            this.isMouseDown = true;
-            cell.isObstacle = !cell.isObstacle;
-            this.renderGrid();
+        if (this.currentMode === 'obstacle') {
+            this.isDragging = true;
+            this.toggleObstacle(x, y);
+        } else if (this.currentMode === 'start') {
+            this.setStartNode(x, y);
+        } else if (this.currentMode === 'end') {
+            this.setEndNode(x, y);
         }
     }
-    
+
     handleMouseMove(e) {
-        if (!this.isMouseDown || this.isAnimating) return;
+        if (!this.isMouseDown || !this.isDragging || this.isAnimating) return;
         
-        const rect = e.target.closest('.grid').getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / (this.cellSize + 1));
-        const y = Math.floor((e.clientY - rect.top) / (this.cellSize + 1));
+        const cell = e.target;
+        if (!cell.classList.contains('cell')) return;
         
-        if (x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) return;
+        const x = parseInt(cell.dataset.x);
+        const y = parseInt(cell.dataset.y);
         
-        const cell = this.grid[y][x];
-        if (!cell.isStart && !cell.isEnd) {
-            cell.isObstacle = true;
-            this.renderGrid();
+        if (this.currentMode === 'obstacle') {
+            this.setObstacle(x, y, true);
         }
     }
-    
+
     handleMouseUp() {
         this.isMouseDown = false;
+        this.isDragging = false;
     }
-    
+
     setMode(mode) {
-        this.mode = mode;
-        const buttons = document.querySelectorAll('.control-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
+        if (this.isAnimating) return;
         
-        if (mode === 'setStart') {
+        this.currentMode = mode;
+        
+        // Update button states
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        if (mode === 'start') {
             document.getElementById('setStart').classList.add('active');
-        } else if (mode === 'setEnd') {
+        } else if (mode === 'end') {
             document.getElementById('setEnd').classList.add('active');
         }
     }
-    
-    setStartPoint(x, y) {
-        // Clear previous start point
-        this.grid[this.start.y][this.start.x].isStart = false;
+
+    toggleObstacle(x, y) {
+        const node = this.grid[y][x];
+        if (node.isStart || node.isEnd) return;
         
-        // Set new start point
-        this.start = { x, y };
-        this.grid[y][x].isStart = true;
-        this.grid[y][x].isObstacle = false;
-        
-        this.renderGrid();
+        this.setObstacle(x, y, !node.isObstacle);
     }
-    
-    setEndPoint(x, y) {
-        // Clear previous end point
-        this.grid[this.end.y][this.end.x].isEnd = false;
+
+    setObstacle(x, y, isObstacle) {
+        const node = this.grid[y][x];
+        if (node.isStart || node.isEnd) return;
         
-        // Set new end point
-        this.end = { x, y };
-        this.grid[y][x].isEnd = true;
-        this.grid[y][x].isObstacle = false;
-        
-        this.renderGrid();
+        node.isObstacle = isObstacle;
+        this.renderCell(x, y);
     }
-    
+
+    setStartNode(x, y) {
+        const node = this.grid[y][x];
+        if (node.isObstacle || node.isEnd) return;
+        
+        // Clear previous start node
+        const prevStart = this.grid[this.startNode.y][this.startNode.x];
+        prevStart.isStart = false;
+        this.renderCell(prevStart.x, prevStart.y);
+        
+        // Set new start node
+        node.isStart = true;
+        this.startNode = { x, y };
+        this.renderCell(x, y);
+        
+        this.setMode('obstacle');
+    }
+
+    setEndNode(x, y) {
+        const node = this.grid[y][x];
+        if (node.isObstacle || node.isStart) return;
+        
+        // Clear previous end node
+        const prevEnd = this.grid[this.endNode.y][this.endNode.x];
+        prevEnd.isEnd = false;
+        this.renderCell(prevEnd.x, prevEnd.y);
+        
+        // Set new end node
+        node.isEnd = true;
+        this.endNode = { x, y };
+        this.renderCell(x, y);
+        
+        this.setMode('obstacle');
+    }
+
     renderGrid() {
         const gridElement = document.getElementById('grid');
         gridElement.innerHTML = '';
         
         for (let y = 0; y < this.gridSize; y++) {
             for (let x = 0; x < this.gridSize; x++) {
-                const cell = this.grid[y][x];
-                const cellElement = document.createElement('div');
-                cellElement.className = 'cell';
-                cellElement.dataset.x = x;
-                cellElement.dataset.y = y;
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.x = x;
+                cell.dataset.y = y;
                 
-                if (cell.isStart) {
-                    cellElement.classList.add('start');
-                } else if (cell.isEnd) {
-                    cellElement.classList.add('end');
-                } else if (cell.isObstacle) {
-                    cellElement.classList.add('obstacle');
-                } else if (cell.isPath) {
-                    cellElement.classList.add('path');
-                } else if (cell.isOpen) {
-                    cellElement.classList.add('open');
-                } else if (cell.isClosed) {
-                    cellElement.classList.add('closed');
-                }
-                
-                gridElement.appendChild(cellElement);
+                this.updateCellAppearance(cell, this.grid[y][x]);
+                gridElement.appendChild(cell);
             }
         }
     }
-    
+
+    renderCell(x, y) {
+        const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+        if (cell) {
+            this.updateCellAppearance(cell, this.grid[y][x]);
+        }
+    }
+
+    updateCellAppearance(cell, node) {
+        cell.className = 'cell';
+        
+        if (node.isStart) {
+            cell.classList.add('start');
+        } else if (node.isEnd) {
+            cell.classList.add('end');
+        } else if (node.isObstacle) {
+            cell.classList.add('obstacle');
+        } else if (node.isPath) {
+            cell.classList.add('path');
+        } else if (node.isOpen) {
+            cell.classList.add('open');
+        } else if (node.isClosed) {
+            cell.classList.add('closed');
+        }
+    }
+
     clearPath() {
         if (this.isAnimating) return;
         
         for (let y = 0; y < this.gridSize; y++) {
             for (let x = 0; x < this.gridSize; x++) {
-                this.grid[y][x].isOpen = false;
-                this.grid[y][x].isClosed = false;
-                this.grid[y][x].isPath = false;
-                this.grid[y][x].g = 0;
-                this.grid[y][x].h = 0;
-                this.grid[y][x].f = 0;
-                this.grid[y][x].parent = null;
+                const node = this.grid[y][x];
+                node.isOpen = false;
+                node.isClosed = false;
+                node.isPath = false;
+                node.gCost = Infinity;
+                node.hCost = 0;
+                node.fCost = Infinity;
+                node.parent = null;
             }
         }
         
         this.renderGrid();
         this.updateStats();
     }
-    
-    reset() {
+
+    resetGrid() {
         if (this.isAnimating) return;
         
+        this.startNode = { x: 2, y: 2 };
+        this.endNode = { x: 12, y: 12 };
         this.initializeGrid();
         this.renderGrid();
         this.updateStats();
-        this.setMode('normal');
     }
-    
-    async startSearch() {
-        if (this.isAnimating) return;
-        
-        const algorithm = document.getElementById('algorithm').value;
-        this.clearPath();
-        this.isAnimating = true;
-        this.disableControls(true);
-        this.updateStatus('搜尋中...');
-        
-        const startTime = performance.now();
-        let result;
-        
-        try {
-            if (algorithm === 'astar') {
-                result = await this.aStar();
-            } else if (algorithm === 'dijkstra') {
-                result = await this.dijkstra();
-            } else if (algorithm === 'bfs') {
-                result = await this.bfs();
-            }
-            
-            const endTime = performance.now();
-            const executionTime = Math.round(endTime - startTime);
-            
-            if (result.path) {
-                await this.animatePath(result.path);
-                this.updateStatus('找到路徑');
-                this.updateStats(result.visitedNodes, result.path.length, executionTime);
-            } else {
-                this.updateStatus('無路徑');
-                alert('無法找到路徑');
-                this.updateStats(result.visitedNodes, 0, executionTime);
-            }
-        } catch (error) {
-            console.error('搜尋錯誤:', error);
-            this.updateStatus('錯誤');
-        } finally {
-            this.isAnimating = false;
-            this.disableControls(false);
-        }
-    }
-    
-    async aStar() {
-        const openSet = [this.grid[this.start.y][this.start.x]];
-        const closedSet = [];
-        let visitedNodes = 0;
-        
-        while (openSet.length > 0) {
-            // Find node with lowest f score
-            let current = openSet[0];
-            let currentIndex = 0;
-            
-            for (let i = 1; i < openSet.length; i++) {
-                if (openSet[i].f < current.f) {
-                    current = openSet[i];
-                    currentIndex = i;
-                }
-            }
-            
-            openSet.splice(currentIndex, 1);
-            closedSet.push(current);
-            current.isClosed = true;
-            current.isOpen = false;
-            visitedNodes++;
-            
-            await this.sleep(this.animationSpeed);
-            
-            // Check if we reached the end
-            if (current.x === this.end.x && current.y === this.end.y) {
-                const path = this.reconstructPath(current);
-                return { path, visitedNodes };
-            }
-            
-            // Explore neighbors
-            const neighbors = this.getNeighbors(current);
-            
-            for (const neighbor of neighbors) {
-                if (neighbor.isObstacle || closedSet.includes(neighbor)) {
-                    continue;
-                }
-                
-                const tentativeG = current.g + this.getDistance(current, neighbor);
-                
-                if (!openSet.includes(neighbor)) {
-                    openSet.push(neighbor);
-                    neighbor.isOpen = true;
-                } else if (tentativeG >= neighbor.g) {
-                    continue;
-                }
-                
-                neighbor.parent = current;
-                neighbor.g = tentativeG;
-                neighbor.h = this.getHeuristic(neighbor, this.grid[this.end.y][this.end.x]);
-                neighbor.f = neighbor.g + neighbor.h;
-            }
-        }
-        
-        return { path: null, visitedNodes };
-    }
-    
-    async dijkstra() {
-        const unvisited = [];
-        const startNode = this.grid[this.start.y][this.start.x];
-        
-        // Initialize all nodes
-        for (let y = 0; y < this.gridSize; y++) {
-            for (let x = 0; x < this.gridSize; x++) {
-                const node = this.grid[y][x];
-                node.distance = Infinity;
-                node.visited = false;
-                if (!node.isObstacle) {
-                    unvisited.push(node);
-                }
-            }
-        }
-        
-        startNode.distance = 0;
-        let visitedNodes = 0;
-        
-        while (unvisited.length > 0) {
-            // Find unvisited node with minimum distance
-            unvisited.sort((a, b) => a.distance - b.distance);
-            const current = unvisited.shift();
-            
-            if (current.distance === Infinity) break;
-            
-            current.visited = true;
-            current.isClosed = true;
-            visitedNodes++;
-            
-            await this.sleep(this.animationSpeed);
-            
-            // Check if we reached the end
-            if (current.x === this.end.x && current.y === this.end.y) {
-                const path = this.reconstructPath(current);
-                return { path, visitedNodes };
-            }
-            
-            // Explore neighbors
-            const neighbors = this.getNeighbors(current);
-            
-            for (const neighbor of neighbors) {
-                if (neighbor.isObstacle || neighbor.visited) continue;
-                
-                const newDistance = current.distance + this.getDistance(current, neighbor);
-                
-                if (newDistance < neighbor.distance) {
-                    neighbor.distance = newDistance;
-                    neighbor.parent = current;
-                    neighbor.isOpen = true;
-                }
-            }
-        }
-        
-        return { path: null, visitedNodes };
-    }
-    
-    async bfs() {
-        const queue = [this.grid[this.start.y][this.start.x]];
-        const visited = new Set();
-        let visitedNodes = 0;
-        
-        visited.add(`${this.start.x},${this.start.y}`);
-        
-        while (queue.length > 0) {
-            const current = queue.shift();
-            current.isClosed = true;
-            visitedNodes++;
-            
-            await this.sleep(this.animationSpeed);
-            
-            // Check if we reached the end
-            if (current.x === this.end.x && current.y === this.end.y) {
-                const path = this.reconstructPath(current);
-                return { path, visitedNodes };
-            }
-            
-            // Explore neighbors
-            const neighbors = this.getNeighbors(current);
-            
-            for (const neighbor of neighbors) {
-                const key = `${neighbor.x},${neighbor.y}`;
-                
-                if (neighbor.isObstacle || visited.has(key)) continue;
-                
-                visited.add(key);
-                neighbor.parent = current;
-                neighbor.isOpen = true;
-                queue.push(neighbor);
-            }
-        }
-        
-        return { path: null, visitedNodes };
-    }
-    
+
     getNeighbors(node) {
         const neighbors = [];
         const directions = [
-            { x: 0, y: -1 }, // Up
-            { x: 1, y: 0 },  // Right
-            { x: 0, y: 1 },  // Down
-            { x: -1, y: 0 }  // Left
+            { x: 0, y: -1 }, // up
+            { x: 1, y: 0 },  // right
+            { x: 0, y: 1 },  // down
+            { x: -1, y: 0 }  // left
         ];
         
         for (const dir of directions) {
             const newX = node.x + dir.x;
             const newY = node.y + dir.y;
             
-            if (newX >= 0 && newX < this.gridSize && newY >= 0 && newY < this.gridSize) {
-                neighbors.push(this.grid[newY][newX]);
+            if (newX >= 0 && newX < this.gridSize && 
+                newY >= 0 && newY < this.gridSize) {
+                const neighbor = this.grid[newY][newX];
+                if (!neighbor.isObstacle) {
+                    neighbors.push(neighbor);
+                }
             }
         }
         
         return neighbors;
     }
-    
-    getDistance(node1, node2) {
-        return Math.abs(node1.x - node2.x) + Math.abs(node1.y - node2.y);
-    }
-    
-    getHeuristic(node1, node2) {
+
+    getDistance(nodeA, nodeB) {
         // Manhattan distance
-        return Math.abs(node1.x - node2.x) + Math.abs(node1.y - node2.y);
+        return Math.abs(nodeA.x - nodeB.x) + Math.abs(nodeA.y - nodeB.y);
     }
-    
+
     reconstructPath(endNode) {
         const path = [];
-        let current = endNode;
+        let currentNode = endNode;
         
-        while (current) {
-            path.unshift(current);
-            current = current.parent;
+        while (currentNode !== null) {
+            path.unshift(currentNode);
+            currentNode = currentNode.parent;
         }
         
         return path;
     }
-    
-    async animatePath(path) {
-        for (const node of path) {
-            if (!node.isStart && !node.isEnd) {
-                node.isPath = true;
-            }
-            node.isOpen = false;
-            node.isClosed = false;
-        }
+
+    async startPathfinding() {
+        if (this.isAnimating) return;
         
-        // Animate path with delay
-        for (let i = 0; i < path.length; i++) {
-            const node = path[i];
-            if (!node.isStart && !node.isEnd) {
-                this.renderGrid();
-                await this.sleep(50);
+        const algorithm = document.getElementById('algorithm').value;
+        this.clearPath();
+        this.isAnimating = true;
+        this.disableControls(true);
+        
+        const startTime = performance.now();
+        
+        try {
+            let result;
+            if (algorithm === 'astar') {
+                result = await this.aStar();
+            } else {
+                result = await this.dijkstra();
             }
+            
+            const endTime = performance.now();
+            const executionTime = Math.round(endTime - startTime);
+            
+            if (result.success) {
+                await this.animatePath(result.path);
+                this.showStatus('找到路徑');
+            } else {
+                this.showError('無法找到路徑');
+                this.showStatus('無路徑');
+            }
+            
+            this.updateStats(result.visitedNodes, result.path ? result.path.length - 1 : 0, executionTime);
+            
+        } catch (error) {
+            console.error('Pathfinding error:', error);
+            this.showError('尋路過程中發生錯誤');
+        } finally {
+            this.isAnimating = false;
+            this.disableControls(false);
         }
     }
-    
+
+    async aStar() {
+        const startNode = this.grid[this.startNode.y][this.startNode.x];
+        const endNode = this.grid[this.endNode.y][this.endNode.x];
+        
+        const openSet = [startNode];
+        const closedSet = [];
+        let visitedNodes = 0;
+        
+        startNode.gCost = 0;
+        startNode.hCost = this.getDistance(startNode, endNode);
+        startNode.fCost = startNode.gCost + startNode.hCost;
+        
+        while (openSet.length > 0) {
+            // Get node with lowest fCost
+            let currentNode = openSet[0];
+            for (let i = 1; i < openSet.length; i++) {
+                if (openSet[i].fCost < currentNode.fCost || 
+                    (openSet[i].fCost === currentNode.fCost && openSet[i].hCost < currentNode.hCost)) {
+                    currentNode = openSet[i];
+                }
+            }
+            
+            // Move current node from open to closed set
+            openSet.splice(openSet.indexOf(currentNode), 1);
+            closedSet.push(currentNode);
+            currentNode.isOpen = false;
+            currentNode.isClosed = true;
+            visitedNodes++;
+            
+            await this.animateCell(currentNode.x, currentNode.y, 'closed');
+            
+            if (currentNode === endNode) {
+                const path = this.reconstructPath(endNode);
+                return { success: true, path, visitedNodes };
+            }
+            
+            const neighbors = this.getNeighbors(currentNode);
+            
+            for (const neighbor of neighbors) {
+                if (closedSet.includes(neighbor)) continue;
+                
+                const newGCost = currentNode.gCost + this.getDistance(currentNode, neighbor);
+                
+                if (newGCost < neighbor.gCost || !openSet.includes(neighbor)) {
+                    neighbor.gCost = newGCost;
+                    neighbor.hCost = this.getDistance(neighbor, endNode);
+                    neighbor.fCost = neighbor.gCost + neighbor.hCost;
+                    neighbor.parent = currentNode;
+                    
+                    if (!openSet.includes(neighbor)) {
+                        openSet.push(neighbor);
+                        neighbor.isOpen = true;
+                        await this.animateCell(neighbor.x, neighbor.y, 'open');
+                    }
+                }
+            }
+        }
+        
+        return { success: false, visitedNodes };
+    }
+
+    async dijkstra() {
+        const startNode = this.grid[this.startNode.y][this.startNode.x];
+        const endNode = this.grid[this.endNode.y][this.endNode.x];
+        
+        const unvisited = [];
+        const visited = [];
+        let visitedNodes = 0;
+        
+        // Initialize all nodes
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                const node = this.grid[y][x];
+                if (!node.isObstacle) {
+                    node.gCost = Infinity;
+                    unvisited.push(node);
+                }
+            }
+        }
+        
+        startNode.gCost = 0;
+        
+        while (unvisited.length > 0) {
+            // Get unvisited node with smallest distance
+            let currentNode = unvisited[0];
+            for (let i = 1; i < unvisited.length; i++) {
+                if (unvisited[i].gCost < currentNode.gCost) {
+                    currentNode = unvisited[i];
+                }
+            }
+            
+            if (currentNode.gCost === Infinity) break;
+            
+            // Remove from unvisited and add to visited
+            unvisited.splice(unvisited.indexOf(currentNode), 1);
+            visited.push(currentNode);
+            currentNode.isClosed = true;
+            visitedNodes++;
+            
+            await this.animateCell(currentNode.x, currentNode.y, 'closed');
+            
+            if (currentNode === endNode) {
+                const path = this.reconstructPath(endNode);
+                return { success: true, path, visitedNodes };
+            }
+            
+            const neighbors = this.getNeighbors(currentNode);
+            
+            for (const neighbor of neighbors) {
+                if (visited.includes(neighbor)) continue;
+                
+                const newDistance = currentNode.gCost + this.getDistance(currentNode, neighbor);
+                
+                if (newDistance < neighbor.gCost) {
+                    neighbor.gCost = newDistance;
+                    neighbor.parent = currentNode;
+                    
+                    if (!neighbor.isOpen) {
+                        neighbor.isOpen = true;
+                        await this.animateCell(neighbor.x, neighbor.y, 'open');
+                    }
+                }
+            }
+        }
+        
+        return { success: false, visitedNodes };
+    }
+
+    async animateCell(x, y, type) {
+        const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+        if (cell) {
+            cell.classList.add('searching');
+            await this.sleep(this.animationSpeed);
+            cell.classList.remove('searching');
+            this.renderCell(x, y);
+        }
+    }
+
+    async animatePath(path) {
+        for (let i = 1; i < path.length - 1; i++) {
+            const node = path[i];
+            node.isPath = true;
+            await this.animateCell(node.x, node.y, 'path');
+        }
+    }
+
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
-    
+
     disableControls(disabled) {
-        const buttons = document.querySelectorAll('.control-btn, .control-select');
+        const buttons = document.querySelectorAll('.control-btn, .algorithm-select');
         buttons.forEach(btn => btn.disabled = disabled);
     }
-    
-    updateStatus(status) {
-        document.getElementById('currentStatus').textContent = status;
-    }
-    
+
     updateStats(visitedNodes = 0, pathLength = 0, executionTime = 0) {
         document.getElementById('visitedNodes').textContent = visitedNodes;
         document.getElementById('pathLength').textContent = pathLength;
         document.getElementById('executionTime').textContent = executionTime;
+    }
+
+    showStatus(status) {
+        document.getElementById('currentStatus').textContent = status;
+    }
+
+    showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 3000);
     }
 }
 

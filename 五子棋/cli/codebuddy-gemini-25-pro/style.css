@@ -1,41 +1,40 @@
 body {
     background-color: #F5E6D3;
     font-family: sans-serif;
-    display: flex;
-    flex-direction: column;
-    aligna_items: center;
+    text-align: center;
     margin: 0;
+    padding: 20px;
 }
 
 h1 {
     color: #8B4513;
 }
 
-#gamea_info {
-    margin-bottom: 10px;
-    font-size: 1.2em;
-}
-
-#game-board-container {
+#board-container {
+    display: inline-block;
+    margin: 20px auto;
     background-color: #DEB887;
-    padding: 20px;
-    border: 2px solid #8B4513;
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+    padding: 20px; /* Ensures pieces on the edge are fully visible */
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
 }
 
-#game-board {
-    cursor: pointer;
+canvas {
+    display: block;
+}
+
+#game-info {
+    font-size: 1.2em;
+    color: #8B4513;
 }
 
 #restart-button {
-    margin-top: 20px;
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
     padding: 10px 20px;
     font-size: 1em;
-    color: #FFFFFF;
-    background-color: #4A90E2;
-    border: none;
-    border-radius: 5px;
     cursor: pointer;
+    border-radius: 5px;
     transition: background-color 0.3s;
 }
 

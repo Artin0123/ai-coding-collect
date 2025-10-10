@@ -1,235 +1,218 @@
-class GomokuGame {
-    constructor() {
-        this.boardSize = 15;
-        this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
-        this.currentPlayer = 1; // 1 for black, 2 for white
-        this.gameOver = false;
-        this.boardElement = document.getElementById('board');
-        this.currentPlayerElement = document.getElementById('current-player');
-        this.restartBtn = document.getElementById('restart-btn');
+const canvas = document.getElementById('chessboard');
+const ctx = canvas.getContext('2d');
+const currentPlayerSpan = document.getElementById('current-player');
+const restartBtn = document.getElementById('restart-btn');
+
+// 棋盘规格
+const BOARD_SIZE = 15;
+const CELL_SIZE = 30;
+const STAR_POINTS = [
+    {x: 3, y: 3}, {x: 3, y: 11}, 
+    {x: 11, y: 3}, {x: 11, y: 11}, 
+    {x: 7, y: 7}
+];
+
+// 游戏状态
+let board = [];
+let currentPlayer = 'black'; // black为玩家，white为AI
+let gameover = false;
+
+// 初始化棋盘
+function initBoard() {
+    board = [];
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        board[i] = [];
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            board[i][j] = null;
+        }
+    }
+    currentPlayer = 'black';
+    gameover = false;
+    currentPlayerSpan.textContent = '黑方';
+    drawBoard();
+}
+
+// 绘制棋盘
+function drawBoard() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 绘制背景
+    ctx.fillStyle = '#DEB887';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 绘制线条
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2;
+    
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        // 垂直线
+        ctx.beginPath();
+        ctx.moveTo(15 + i * CELL_SIZE, 15);
+        ctx.lineTo(15 + i * CELL_SIZE, 15 + (BOARD_SIZE - 1) * CELL_SIZE);
+        ctx.stroke();
         
-        this.initBoard();
-        this.setupEventListeners();
+        // 水平线
+        ctx.beginPath();
+        ctx.moveTo(15, 15 + i * CELL_SIZE);
+        ctx.lineTo(15 + (BOARD_SIZE - 1) * CELL_SIZE, 15 + i * CELL_SIZE);
+        ctx.stroke();
     }
     
-    initBoard() {
-        this.boardElement.innerHTML = '';
-        this.boardElement.style.width = `${this.boardSize * 30}px`;
-        this.boardElement.style.height = `${this.boardSize * 30}px`;
-        
-        // Create cells
-        for (let i = 0; i < this.boardSize; i++) {
-            for (let j = 0; j < this.boardSize; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.style.left = `${i * 30}px`;
-                cell.style.top = `${j * 30}px`;
-                cell.dataset.row = j;
-                cell.dataset.col = i;
-                
-                // Add star points
-                if ((i === 3 && j === 3) || (i === 3 && j === 11) || 
-                    (i === 11 && j === 3) || (i === 11 && j === 11) || 
-                    (i === 7 && j === 7)) {
-                    cell.classList.add('star-point');
-                }
-                
-                this.boardElement.appendChild(cell);
+    // 绘制星位
+    ctx.fillStyle = '#8B4513';
+    STAR_POINTS.forEach(point => {
+        ctx.beginPath();
+        ctx.arc(15 + point.x * CELL_SIZE, 15 + point.y * CELL_SIZE, 4, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    // 绘制棋子
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            if (board[i][j]) {
+                drawChessPiece(i, j, board[i][j]);
             }
         }
-    }
-    
-    setupEventListeners() {
-        this.boardElement.addEventListener('click', (e) => {
-            if (this.gameOver || this.currentPlayer !== 1) return;
-            
-            const cell = e.target.closest('.cell');
-            if (!cell) return;
-            
-            const row = parseInt(cell.dataset.row);
-            const col = parseInt(cell.dataset.col);
-            
-            if (this.board[row][col] === 0) {
-                this.placePiece(row, col, 1);
-                if (!this.gameOver) {
-                    this.switchPlayer();
-                    setTimeout(() => this.aiMove(), 500);
-                }
-            }
-        });
-        
-        this.restartBtn.addEventListener('click', () => {
-            this.restartGame();
-        });
-    }
-    
-    placePiece(row, col, player) {
-        this.board[row][col] = player;
-        
-        const piece = document.createElement('div');
-        piece.className = player === 1 ? 'black-piece' : 'white-piece';
-        
-        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-        cell.appendChild(piece);
-        
-        if (this.checkWin(row, col, player)) {
-            this.gameOver = true;
-            const winner = player === 1 ? '黑方' : '白方';
-            setTimeout(() => alert(`${winner}獲勝！`), 100);
-        }
-    }
-    
-    switchPlayer() {
-        this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
-        this.currentPlayerElement.textContent = this.currentPlayer === 1 ? '黑方' : '白方';
-    }
-    
-    checkWin(row, col, player) {
-        // Check horizontal
-        let count = 1;
-        for (let i = col - 1; i >= 0 && this.board[row][i] === player; i--) count++;
-        for (let i = col + 1; i < this.boardSize && this.board[row][i] === player; i++) count++;
-        if (count >= 5) return true;
-        
-        // Check vertical
-        count = 1;
-        for (let i = row - 1; i >= 0 && this.board[i][col] === player; i--) count++;
-        for (let i = row + 1; i < this.boardSize && this.board[i][col] === player; i++) count++;
-        if (count >= 5) return true;
-        
-        // Check diagonal (top-left to bottom-right)
-        count = 1;
-        for (let i = 1; row - i >= 0 && col - i >= 0 && this.board[row - i][col - i] === player; i++) count++;
-        for (let i = 1; row + i < this.boardSize && col + i < this.boardSize && this.board[row + i][col + i] === player; i++) count++;
-        if (count >= 5) return true;
-        
-        // Check diagonal (top-right to bottom-left)
-        count = 1;
-        for (let i = 1; row - i >= 0 && col + i < this.boardSize && this.board[row - i][col + i] === player; i++) count++;
-        for (let i = 1; row + i < this.boardSize && col - i >= 0 && this.board[row + i][col - i] === player; i++) count++;
-        if (count >= 5) return true;
-        
-        return false;
-    }
-    
-    restartGame() {
-        this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
-        this.currentPlayer = 1;
-        this.gameOver = false;
-        this.currentPlayerElement.textContent = '黑方';
-        this.initBoard();
-    }
-    
-    aiMove() {
-        if (this.gameOver || this.currentPlayer !== 2) return;
-        
-        let bestMove = this.getBestMove();
-        this.placePiece(bestMove.row, bestMove.col, 2);
-        
-        if (!this.gameOver) {
-            this.switchPlayer();
-        }
-    }
-    
-    getBestMove() {
-        let bestScore = -Infinity;
-        let bestMoves = [];
-        
-        // Evaluate each empty position
-        for (let i = 0; i < this.boardSize; i++) {
-            for (let j = 0; j < this.boardSize; j++) {
-                if (this.board[i][j] === 0) {
-                    // Check if this move can win the game
-                    this.board[i][j] = 2;
-                    if (this.checkWin(i, j, 2)) {
-                        this.board[i][j] = 0; // Reset
-                        return {row: i, col: j};
-                    }
-                    this.board[i][j] = 0; // Reset
-                    
-                    // Check if this move can block player's win
-                    this.board[i][j] = 1;
-                    if (this.checkWin(i, j, 1)) {
-                        this.board[i][j] = 0; // Reset
-                        return {row: i, col: j};
-                    }
-                    this.board[i][j] = 0; // Reset
-                    
-                    // Evaluate the position
-                    const score = this.evaluatePosition(i, j);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMoves = [{row: i, col: j}];
-                    } else if (score === bestScore) {
-                        bestMoves.push({row: i, col: j});
-                    }
-                }
-            }
-        }
-        
-        // If no good moves found, return a random valid move
-        if (bestMoves.length === 0) {
-            let emptyCells = [];
-            for (let i = 0; i < this.boardSize; i++) {
-                for (let j = 0; j < this.boardSize; j++) {
-                    if (this.board[i][j] === 0) {
-                        emptyCells.push({row: i, col: j});
-                    }
-                }
-            }
-            return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        }
-        
-        // Return a random move from the best moves
-        return bestMoves[Math.floor(Math.random() * bestMoves.length)];
-    }
-    
-    evaluatePosition(row, col) {
-        let score = 0;
-        
-        // Prefer center positions
-        const center = Math.floor(this.boardSize / 2);
-        score += (this.boardSize - Math.abs(row - center) - Math.abs(col - center)) * 2;
-        
-        // Prefer positions near existing pieces
-        for (let i = Math.max(0, row - 2); i <= Math.min(this.boardSize - 1, row + 2); i++) {
-            for (let j = Math.max(0, col - 2); j <= Math.min(this.boardSize - 1, col + 2); j++) {
-                if (this.board[i][j] !== 0) {
-                    score += 3;
-                }
-            }
-        }
-        
-        // Evaluate potential for creating patterns
-        // Check horizontal
-        let count = 1;
-        for (let i = col - 1; i >= 0 && this.board[row][i] === 2; i--) count++;
-        for (let i = col + 1; i < this.boardSize && this.board[row][i] === 2; i++) count++;
-        if (count >= 3) score += count * 5;
-        
-        // Check vertical
-        count = 1;
-        for (let i = row - 1; i >= 0 && this.board[i][col] === 2; i--) count++;
-        for (let i = row + 1; i < this.boardSize && this.board[i][col] === 2; i++) count++;
-        if (count >= 3) score += count * 5;
-        
-        // Check diagonal (top-left to bottom-right)
-        count = 1;
-        for (let i = 1; row - i >= 0 && col - i >= 0 && this.board[row - i][col - i] === 2; i++) count++;
-        for (let i = 1; row + i < this.boardSize && col + i < this.boardSize && this.board[row + i][col + i] === 2; i++) count++;
-        if (count >= 3) score += count * 5;
-        
-        // Check diagonal (top-right to bottom-left)
-        count = 1;
-        for (let i = 1; row - i >= 0 && col + i < this.boardSize && this.board[row - i][col + i] === 2; i++) count++;
-        for (let i = 1; row + i < this.boardSize && col - i >= 0 && this.board[row + i][col - i] === 2; i++) count++;
-        if (count >= 3) score += count * 5;
-        
-        return score;
     }
 }
 
-// Initialize the game when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    new GomokuGame();
+// 绘制棋子
+function drawChessPiece(x, y, color) {
+    const centerX = 15 + x * CELL_SIZE;
+    const centerY = 15 + y * CELL_SIZE;
+    const radius = CELL_SIZE / 2 - 2;
+    
+    // 创建渐变
+    const gradient = ctx.createRadialGradient(
+        centerX - radius/3, centerY - radius/3, radius/8,
+        centerX, centerY, radius
+    );
+    
+    if (color === 'black') {
+        gradient.addColorStop(0, '#000');
+        gradient.addColorStop(1, '#666');
+    } else {
+        gradient.addColorStop(0, '#fff');
+        gradient.addColorStop(1, '#ccc');
+    }
+    
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.strokeStyle = '#8B4513';
+    ctx.stroke();
+}
+
+// 检查是否获胜
+function checkWin(x, y, color) {
+    const directions = [
+        [1, 0], [0, 1], [1, 1], [1, -1]
+    ];
+    
+    for (let [dx, dy] of directions) {
+        let count = 1;
+        
+        // 正方向
+        for (let i = 1; i < 5; i++) {
+            const nx = x + dx * i;
+            const ny = y + dy * i;
+            if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && board[nx][ny] === color) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        
+        // 反方向
+        for (let i = 1; i < 5; i++) {
+            const nx = x - dx * i;
+            const ny = y - dy * i;
+            if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && board[nx][ny] === color) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        
+        if (count >= 5) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// 玩家下棋
+function playerMove(x, y) {
+    if (gameover || currentPlayer !== 'black' || board[x][y]) return;
+    
+    board[x][y] = 'black';
+    drawBoard();
+    
+    if (checkWin(x, y, 'black')) {
+        setTimeout(() => {
+            alert('黑方获胜！');
+            gameover = true;
+        }, 100);
+        return;
+    }
+    
+    currentPlayer = 'white';
+    currentPlayerSpan.textContent = '白方';
+    
+    // AI下棋
+    setTimeout(aiMove, 500);
+}
+
+// AI下棋
+function aiMove() {
+    if (gameover) return;
+    
+    // 简单的AI策略：随机选择一个空位
+    let emptyPoints = [];
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            if (!board[i][j]) {
+                emptyPoints.push({x: i, y: j});
+            }
+        }
+    }
+    
+    if (emptyPoints.length === 0) return;
+    
+    // 简单策略：选择第一个空位
+    const move = emptyPoints[0];
+    board[move.x][move.y] = 'white';
+    drawBoard();
+    
+    if (checkWin(move.x, move.y, 'white')) {
+        setTimeout(() => {
+            alert('白方获胜！');
+            gameover = true;
+        }, 100);
+        return;
+    }
+    
+    currentPlayer = 'black';
+    currentPlayerSpan.textContent = '黑方';
+}
+
+// 处理点击事件
+canvas.addEventListener('click', (e) => {
+    if (gameover) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.round((e.clientX - rect.left - 15) / CELL_SIZE);
+    const y = Math.round((e.clientY - rect.top - 15) / CELL_SIZE);
+    
+    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+        playerMove(x, y);
+    }
 });
+
+// 重新开始游戏
+restartBtn.addEventListener('click', initBoard);
+
+// 初始化游戏
+initBoard();

@@ -9,13 +9,11 @@
     </head>
 
     <body>
-        <div class="container">
+        <div class="game-container">
             <h1>五子棋</h1>
-            <div class="game-info">
-                <p>當前回合: <span id="current-turn">黑方</span></p>
-                <button id="restart-button">重新開始</button>
-            </div>
-            <canvas id="gobang-board" width="600" height="600"></canvas>
+            <div id="turn-display">當前回合: 黑方</div>
+            <canvas id="gomoku-board" width="600" height="600"></canvas>
+            <button id="restart-button">重新開始</button>
         </div>
         <script src="script.js"></script>
     </body>
