@@ -1,42 +1,47 @@
-# 免費 AI 程式輔助工具收集
-本專案旨在收集並比較各種免費 AI 程式輔助工具的表現。
+# AI 程式輔助工具收集
+本來想只紀錄免費的，但是後來想想反正我平常還是用那些更好的模型或工具，因為用更好的模型或工具 = 省時間試錯，比起為了免費而折騰低階工具更有意義，因此以下列出低價/免費的管道，若能用就先用：
 
-## 免費規則
-不需要學生或特殊身分，並且在測試範例中，刪除連續兩次失敗的方式（1次聊天不等於1次請求，比如過程中調用MCP也算1次請求，通常1次聊天會請求5次以上）。
-上下文視窗 >= 60K (60,000)
-TPM >= 60K (60,000)
-RPM >= 10
-RPD >= 100
+- GitHub Copilot: GitHub 官方 + VSCode 內建 = 主流保證，有學生方案夠了，沒有學生方案就到淘寶等管道買一個，永久號 230 RMB
+- Cursor: 有學生方案，只是不容易通過驗證，不過就算有學生方案也不能爽用自選模型，超過一定數量的請求後也會降級成和免費帳號一樣。
 
-目前省略以下程式或服務，但未來或許值得嘗試：
-- Trae: 效果太差，很笨，而且某些模型要排隊
-- Cursor: 免費次數太少
-- Warp: 免費次數太少（平均一天5次）
-- Rovo Dev: 註冊的時候顯示使用人數已滿
-- Tencent Cloud CodeBuddy: VSCode 擴充版本，無法添加全域規則
-- OpenRouter (API): 免費次數太少（一天50次，需要付費10美元升級每天1000次）
+## 規則
+
+以下條件需完全符合：
+
+- 模型需為可用的最新世代，比如 gemini 2.5 pro > gemini 2.0 pro
+- 若有顯示具體模型名稱，只測試以下的模型家族：
+    1. GitHub Copilot 和 Cursor 皆擁有的模型家族：gpt, claude, grok, gemini
+    2. CLI 的模型家族（不含前面重複的內容）：deepseek, glm, kimi, qwen
+- 若來源是自己在 OpenRouter 上建立的 API key，只測試 GitHub Copilot 提供的免費模型
+- 若來源是 Cursor，只測試有思考能力的模型
+
+---
+
+在測試範例中，刪除連續兩次失敗的產品或服務（含輪詢），每天至少要能用 20 次對話或 100 次請求（一次對話不等於一次請求，比如過程中調用 MCP 也算一次請求）
+
+目前省略以下產品或服務，但未來或許值得嘗試：
+
+- Trae: 效果太差，好的模型要排隊
+- Qoder: 似乎不能添加全域規則
+- Kiro: 每個月 50 credits，五子棋範例中，用最低階的 auto 至少需要 0.7 credits
+- Warp: 每個月 150 credits，五子棋範例中，用最低階的 haiku 至少需要 3 credits（而且程式用起來很卡）
+- Codebuff: 若邀請全滿，每個月 2000 credits，五子棋範例中，用最低階的 lite 至少需要 18 credits
+- Rovo Dev: 無法執行
+- CodeBuddy (VSCode extensions): 不能添加全域規則
 - ModelScope (API): 需要中國手機號碼
-- Groq (API): Request Entity Too Large
-- chatanywhere (API): 輸入限制太低，需小於 4096 tokens
-
-> 目前測試 codebuddy 會限制生成內容：抱歉，我僅支援防禦性資安相關任務。（需再觀察）
+- Groq (API): 卡上限
+- chatanywhere (API): 卡上限
+- Any Router (API): 不能保證隨時可用
+- Agent Router (API): 不能保證隨時可用
+- Augment: $
+- Claude Code: $
+- Codex: $
+- CodeBuddy: $
 
 ## 測試項目
+
 - **五子棋遊戲** 
 - **尋路演算法視覺化工具**
 
 ## 結果
 各個項目的資料夾中，包含了 README.md 和生成的原始程式碼。
-
-### 前三 CLI
-- codebuddy-gemini-25-pro 9.0
-- codebuddy-gpt-5-codex 9.0
-- iflow-glm-46 8.5
-- iflow-deepseek-v32 8.5
-- iflow-kimi-k2-0905 8.5
-- qwen 8.5
-
-### 前三 VSC
-- cline-grok-code-fast 8.0
-- copilot-google-gemini-25-flash 8.0
-- cline-cerebras-qwen-3-coder-free 8.0

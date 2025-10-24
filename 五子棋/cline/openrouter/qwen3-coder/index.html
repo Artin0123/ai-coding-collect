@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>五子棋遊戲</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>五子棋遊戲</h1>
+            <div class="game-info">
+                <div class="current-player">當前回合：<span id="current-player">黑方</span></div>
+                <button id="restart-btn" class="restart-btn">重新開始</button>
+            </div>
+            <div class="board-container">
+                <canvas id="gobang-board" width="600" height="600"></canvas>
+            </div>
+            <div id="winner-message" class="winner-message hidden">
+                <span id="winner-text"></span>
+                <button id="play-again-btn">再玩一次</button>
+            </div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+
+</html>

@@ -1,0 +1,44 @@
+body {
+    background-color: #F5E6D3;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h1 {
+    color: #8B4513;
+}
+
+#game-info {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#gobang-board {
+    background-color: #DEB887;
+    border: 2px solid #8B4513;
+    cursor: pointer;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+#restart-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1em;
+    color: #FFFFFF;
+    background-color: #4A90E2;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#restart-button:hover {
+    background-color: #357ABD;
+}

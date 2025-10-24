@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尋路演算法視覺化工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>尋路演算法視覺化工具</h1>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <button id="setStartBtn" class="control-btn">設定起點</button>
+            <button id="setEndBtn" class="control-btn">設定終點</button>
+            <button id="clearPathBtn" class="control-btn">清除路徑</button>
+            <button id="resetBtn" class="control-btn">完全重置</button>
+            
+            <select id="algorithmSelect" class="algorithm-select">
+                <option value="astar">A*</option>
+                <option value="dijkstra">Dijkstra</option>
+            </select>
+            
+            <button id="startBtn" class="control-btn primary">開始尋路</button>
+        </div>
+        
+        <!-- 統計資訊 -->
+        <div class="statistics">
+            <div class="stat-item">
+                <span class="stat-label">已訪問節點數：</span>
+                <span id="visitedNodes">0</span> 個
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">路徑長度：</span>
+                <span id="pathLength">0</span> 步
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">執行時間：</span>
+                <span id="executionTime">0</span> ms
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">當前狀態：</span>
+                <span id="currentStatus">就緒</span>
+            </div>
+        </div>
+        
+        <!-- 網格容器 -->
+        <div class="grid-container">
+            <div id="grid" class="grid"></div>
+        </div>
+        
+        <!-- 訊息提示 -->
+        <div id="message" class="message hidden"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

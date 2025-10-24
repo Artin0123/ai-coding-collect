@@ -1,0 +1,107 @@
+/* 基本頁面樣式 */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #F5E6D3;
+    /* 米黃色 */
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* 遊戲容器 */
+.game-container {
+    text-align: center;
+}
+
+/* 標題 */
+.game-container h1 {
+    margin-bottom: 10px;
+}
+
+/* 狀態文字 */
+#status {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+/* 棋盤 */
+.board {
+    position: relative;
+    width: 600px;
+    /* 15格 * 40px */
+    height: 600px;
+    background-color: #DEB887;
+    /* 淺褐色 */
+    border: 2px solid #8B4513;
+    /* 深褐色外框 */
+    box-sizing: border-box;
+}
+
+/* 棋盤格線 */
+.board::before,
+.board::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(to right, #8B4513 2px, transparent 2px),
+        linear-gradient(to bottom, #8B4513 2px, transparent 2px);
+    background-size: 40px 40px;
+    /* 每格 40px */
+    pointer-events: none;
+}
+
+/* 星位 (5 個) */
+.star {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #8B4513;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* 棋子 */
+.stone {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    cursor: pointer;
+}
+
+/* 黑子漸層 */
+.black {
+    background: radial-gradient(circle at 30% 30%, #555, #000);
+    box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.3);
+}
+
+/* 白子漸層 */
+.white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 重新開始按鈕 */
+#restart {
+    margin-top: 15px;
+    padding: 8px 16px;
+    font-size: 1em;
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#restart:hover {
+    background-color: #357ABD;
+}

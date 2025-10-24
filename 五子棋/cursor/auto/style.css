@@ -1,0 +1,192 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #F5E6D3;
+    font-family: 'Microsoft JhengHei', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.game-container {
+    text-align: center;
+    background-color: #F5E6D3;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #8B4513;
+    margin-bottom: 20px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.current-player {
+    font-size: 1.2em;
+    color: #8B4513;
+    font-weight: bold;
+}
+
+.restart-btn {
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.restart-btn:hover {
+    background-color: #357ABD;
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.game-board {
+    width: 600px;
+    height: 600px;
+    background-color: #DEB887;
+    border: 3px solid #8B4513;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    gap: 0;
+}
+
+.intersection {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.intersection::before {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background-color: #8B4513;
+    border-radius: 50%;
+}
+
+.intersection:hover::before {
+    width: 8px;
+    height: 8px;
+    background-color: rgba(139, 69, 19, 0.3);
+    transition: all 0.2s ease;
+}
+
+.intersection.occupied {
+    cursor: default;
+}
+
+.intersection.occupied:hover::before {
+    width: 2px;
+    height: 2px;
+    background-color: #8B4513;
+}
+
+.star-point {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: #8B4513;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.stone {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    position: relative;
+    z-index: 2;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    cursor: default;
+}
+
+.stone.black {
+    background: radial-gradient(circle at 30% 30%, #666, #000);
+    border: 1px solid #333;
+}
+
+.stone.white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    border: 1px solid #999;
+}
+
+.game-message {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #8B4513;
+    margin-top: 20px;
+    min-height: 30px;
+}
+
+.game-message.winner {
+    color: #D2691E;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .game-board {
+        width: 400px;
+        height: 400px;
+    }
+    
+    .stone {
+        width: 24px;
+        height: 24px;
+    }
+    
+    h1 {
+        font-size: 2em;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-board {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .stone {
+        width: 18px;
+        height: 18px;
+    }
+    
+    h1 {
+        font-size: 1.5em;
+    }
+}

@@ -1,0 +1,72 @@
+body {
+    background-color: #F5E6D3;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.game-container {
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #8B4513;
+    margin-bottom: 20px;
+}
+
+.status {
+    margin-bottom: 20px;
+}
+
+#current-turn {
+    font-size: 18px;
+    font-weight: bold;
+    color: #8B4513;
+}
+
+.board-container {
+    display: inline-block;
+    border: 3px solid #8B4513;
+    border-radius: 5px;
+    background-color: #DEB887;
+    margin-bottom: 20px;
+}
+
+canvas#gobanaru-board {
+    display: block;
+    cursor: crosshair;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+#reset-btn {
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#reset-btn:hover {
+    background-color: #357ABD;
+}
+
+.message {
+    font-size: 18px;
+    font-weight: bold;
+    color: #8B4513;
+    min-height: 20px;
+}

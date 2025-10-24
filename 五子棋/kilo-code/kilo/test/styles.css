@@ -1,0 +1,45 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #F5E6D3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    text-align: center;
+}
+
+h1 {
+    color: #8B4513;
+    margin-bottom: 20px;
+}
+
+#turn-indicator {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #8B4513;
+}
+
+#chessboard {
+    border: 2px solid #8B4513;
+    background-color: #DEB887;
+    cursor: pointer;
+}
+
+#restart-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#restart-btn:hover {
+    background-color: #357ABD;
+}
