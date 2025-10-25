@@ -14,10 +14,12 @@ search: 搜尋文字...
 附加功能：
 若有內建就用內建的，包含可手動開啟的功能，但關閉以下項目：
 1. 看不到思考過程的思考
+2. 瀏覽器（電腦）控制
 
 補充功能：
-- 瀏覽器控制 (Playwright Mcp)
-- Context7
+- 瀏覽器控制 (Playwright Mcp): Cline
+- Context7: Cline, Cursor
+- [gemini-vision](https://github.com/Artin0123/gemini-vision-mcp): Cline, Cursor
 
 ## 全域規則（可選）
 [instructions.md](https://raw.githubusercontent.com/Artin0123/memory-mcp/refs/heads/main/instructions.md)
