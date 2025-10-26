@@ -1,0 +1,55 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #F5E6D3; /* 米黃色背景 */
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    text-align: center;
+}
+
+h1 {
+    color: #8B4513; /* 深褐色文字 */
+}
+
+.game-info {
+    margin-bottom: 20px;
+}
+
+.current-player {
+    font-size: 18px;
+    font-weight: bold;
+    color: #8B4513; /* 深褐色文字 */
+}
+
+#gobang-board {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    background-color: #DEB887; /* 淺褐色棋盤 */
+    border: 2px solid #8B4513; /* 深褐色邊框 */
+    box-sizing: border-box;
+}
+
+.controls {
+    margin-top: 20px;
+}
+
+#restart-btn {
+    background-color: #4A90E2; /* 藍色背景 */
+    color: #FFFFFF; /* 白色文字 */
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+#restart-btn:hover {
+    background-color: #357AE8; /* 懸停時 slightly darker blue */
+}

@@ -1,0 +1,45 @@
+body {
+    background-color: #F5E6D3;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    height: 100vh;
+}
+
+h1 {
+    color: #8B4513;
+}
+
+#game-info {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #333;
+}
+
+canvas {
+    background-color: #DEB887;
+    border: 2px solid #8B4513;
+    cursor: pointer;
+}
+
+#controls {
+    margin-top: 20px;
+}
+
+#restart-button {
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#restart-button:hover {
+    background-color: #357ABD;
+}

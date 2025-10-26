@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋遊戲 - 人機對戰</title>
+    <link rel="stylesheet" href="gomoku.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>五子棋遊戲</h1>
+        
+        <div class="game-info">
+            <div class="status" id="status">黑方回合</div>
+            <button id="restart" class="restart-btn">重新開始</button>
+        </div>
+        
+        <div class="board-container">
+            <div class="board" id="board">
+                <!-- 棋盤線條和星位將由JavaScript生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="gomoku.js"></script>
+</body>
+</html>

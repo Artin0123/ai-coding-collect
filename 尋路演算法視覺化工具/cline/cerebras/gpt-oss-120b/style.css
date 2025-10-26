@@ -1,0 +1,113 @@
+/* Global styles */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #eef2f4;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+/* App container */
+#app {
+    margin-top: 20px;
+}
+
+/* Control panel */
+#controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+/* Buttons */
+.btn {
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn:disabled {
+    background-color: #6c717bff;
+    cursor: not-allowed;
+}
+
+/* Grid */
+#grid {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    gap: 0;
+    background-color: #eef2f4;
+}
+
+/* Cell */
+.cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    background-color: #fdfdfd;
+    box-sizing: border-box;
+}
+
+/* Cell states */
+.cell.start {
+    background-color: #4ade80;
+}
+
+.cell.end {
+    background-color: #f87171;
+}
+
+.cell.obstacle {
+    background-color: #34495e;
+}
+
+.cell.open {
+    background-color: #aed6f1;
+}
+
+.cell.closed {
+    background-color: #f5cba7;
+}
+
+.cell.path {
+    background-color: #f1c40f;
+}
+
+/* Stats */
+#stats {
+    margin-top: 12px;
+    color: #2c3e50;
+}
+
+/* Message */
+#message {
+    margin-top: 8px;
+}
+
+/* Select style (dropdown) */
+#algorithmSelect {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: #3498db;
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Disabled select */
+#algorithmSelect:disabled {
+    background-color: #6c717bff;
+}

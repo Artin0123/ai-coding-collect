@@ -1,0 +1,196 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+    background-color: #F5E6D3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.game-container {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #8B4513;
+    margin-bottom: 20px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    background: rgba(222, 184, 135, 0.3);
+    padding: 15px 25px;
+    border-radius: 10px;
+    border: 2px solid #8B4513;
+}
+
+.status {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #8B4513;
+}
+
+.restart-btn {
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1.1em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.restart-btn:hover {
+    background-color: #3A7BC8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    background: #DEB887;
+    padding: 30px;
+    border-radius: 15px;
+    border: 4px solid #8B4513;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.board {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    background: #DEB887;
+    border: 2px solid #8B4513;
+}
+
+.line {
+    position: absolute;
+    background-color: #8B4513;
+}
+
+.horizontal-line {
+    width: 100%;
+    height: 2px;
+    left: 0;
+}
+
+.vertical-line {
+    width: 2px;
+    height: 100%;
+    top: 0;
+}
+
+.star-point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #8B4513;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.intersection {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+}
+
+.intersection:hover::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background: rgba(139, 69, 19, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.piece {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.piece.black {
+    background: radial-gradient(circle at 30% 30%, #666666, #000000);
+    border: 1px solid #333;
+}
+
+.piece.white {
+    background: radial-gradient(circle at 30% 30%, #FFFFFF, #CCCCCC);
+    border: 1px solid #999;
+}
+
+.winner-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 30px 50px;
+    border-radius: 15px;
+    font-size: 2em;
+    font-weight: bold;
+    z-index: 1000;
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -60%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@media (max-width: 768px) {
+    .board {
+        width: 400px;
+        height: 400px;
+    }
+    
+    .intersection {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .piece {
+        width: 22px;
+        height: 22px;
+    }
+    
+    h1 {
+        font-size: 2em;
+    }
+    
+    .game-info {
+        flex-direction: column;
+        gap: 15px;
+    }
+}

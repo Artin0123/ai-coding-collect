@@ -1,0 +1,101 @@
+ /* 基本布局 */
+ body {
+     margin: 0;
+     padding: 20px;
+     font-family: Arial, Helvetica, sans-serif;
+     background-color: #eef2f4;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     color: #2c3e50;
+ }
+
+ /* 標題 */
+ h1 {
+     margin-bottom: 20px;
+ }
+
+ /* 控制面板 */
+ #control-panel {
+     display: flex;
+     gap: 10px;
+     margin-bottom: 15px;
+ }
+
+ /* 按鈕樣式 */
+ #control-panel button,
+ #control-panel select {
+     padding: 6px 12px;
+     font-size: 14px;
+     cursor: pointer;
+     border: none;
+     border-radius: 4px;
+     background-color: #3498db;
+     color: #ffffff;
+ }
+
+ /* 禁用狀態 */
+ #control-panel button:disabled,
+ #control-panel select:disabled {
+     background-color: #6c717bff;
+     cursor: not-allowed;
+ }
+
+ /* 統計資訊 */
+ #stats {
+     margin-bottom: 15px;
+     text-align: left;
+     width: 100%;
+     max-width: 600px;
+ }
+
+ #stats p {
+     margin: 4px 0;
+ }
+
+ /* 網格容器 */
+ #grid {
+     display: grid;
+     grid-template-columns: repeat(15, 30px);
+     grid-template-rows: repeat(15, 30px);
+     gap: 0;
+     background-color: #fdfdfd;
+ }
+
+ /* 單元格 */
+ .cell {
+     width: 30px;
+     height: 30px;
+     box-sizing: border-box;
+     border: 1px solid #ccc;
+ }
+
+ /* 狀態顏色 */
+ .start {
+     background-color: #4ade80;
+ }
+
+ .end {
+     background-color: #f87171;
+ }
+
+ .wall {
+     background-color: #34495e;
+ }
+
+ .open {
+     background-color: #aed6f1;
+ }
+
+ .closed {
+     background-color: #f5cba7;
+ }
+
+ .path {
+     background-color: #f1c40f;
+ }
+
+ /* 防止文字選取 */
+ #grid .cell {
+     user-select: none;
+ }

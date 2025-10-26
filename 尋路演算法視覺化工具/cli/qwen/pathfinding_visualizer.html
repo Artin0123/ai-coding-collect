@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路徑尋找演算法視覺化工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-gap: 1px;
+            background-color: #ccc;
+            margin: 20px auto;
+            border: 2px solid #34495e;
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #fdfdfd;
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+        
+        .start {
+            background-color: #4ade80;
+        }
+        
+        .end {
+            background-color: #f87171;
+        }
+        
+        .obstacle {
+            background-color: #34495e;
+        }
+        
+        .open {
+            background-color: #aed6f1;
+        }
+        
+        .closed {
+            background-color: #f5cba7;
+        }
+        
+        .path {
+            background-color: #f1c40f;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #6c717b;
+            cursor: not-allowed;
+        }
+        
+        select {
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .status {
+            margin-top: 10px;
+            text-align: center;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>路徑尋找演算法視覺化工具</h1>
+        
+        <div class="grid-container" id="grid"></div>
+        
+        <div class="controls">
+            <button id="setStartBtn">設定起點</button>
+            <button id="setEndBtn">設定終點</button>
+            <button id="clearPathBtn">清除路徑</button>
+            <button id="resetBtn">完全重置</button>
+            <select id="algorithmSelect">
+                <option value="astar">A*</option>
+                <option value="dijkstra">Dijkstra</option>
+            </select>
+            <button id="startBtn">開始尋路</button>
+        </div>
+        
+        <div class="stats">
+            <div>已訪問節點數：<span id="visitedNodes">0</span> 個</div>
+            <div>路徑長度：<span id="pathLength">0</span> 步</div>
+            <div>執行時間：<span id="executionTime">0</span> ms</div>
+        </div>
+        
+        <div class="status" id="status">就緒</div>
+    </div>
+
+    <script>
+        // 網格大小
+        const ROWS = 15;
+        const COLS = 15;
+        
+        // 預設起點和終點
+        const DEFAULT_START = { row: 2, col: 2 };
+        const DEFAULT_END = { row: 12, col: 12 };
+        
+        // 狀態常量
+        const CELL_STATES = {
+            EMPTY: 0,
+            OBSTACLE: 1,
+            START: 2,
+            END: 3,
+            OPEN: 4,
+            CLOSED: 5,
+            PATH: 6
+        };
+        
+        // 網格狀態
+        let grid = [];
+        let start = { ...DEFAULT_START };
+        let end = { ...DEFAULT_END };
+        let isMouseDown = false;
+        let drawingMode = null; // 'obstacle' or 'erase'
+        let settingStart = false;
+        let settingEnd = false;
+        let isRunning = false;
+        
+        // DOM 元素
+        const gridContainer = document.getElementById('grid');
+        const setStartBtn = document.getElementById('setStartBtn');
+        const setEndBtn = document.getElementById('setEndBtn');
+        const clearPathBtn = document.getElementById('clearPathBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const startBtn = document.getElementById('startBtn');
+        const algorithmSelect = document.getElementById('algorithmSelect');
+        const visitedNodesEl = document.getElementById('visitedNodes');
+        const pathLengthEl = document.getElementById('pathLength');
+        const executionTimeEl = document.getElementById('executionTime');
+        const statusEl = document.getElementById('status');
+        
+        // 初始化網格
+        function initializeGrid() {
+            grid = [];
+            gridContainer.innerHTML = '';
+            
+            for (let row = 0; row < ROWS; row++) {
+                grid[row] = [];
+                for (let col = 0; col < COLS; col++) {
+                    grid[row][col] = CELL_STATES.EMPTY;
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    cell.addEventListener('mousedown', handleMouseDown);
+                    cell.addEventListener('mouseenter', handleMouseEnter);
+                    cell.addEventListener('mouseup', handleMouseUp);
+                    
+                    gridContainer.appendChild(cell);
+                }
+            }
+            
+            // 設定起點和終點
+            grid[start.row][start.col] = CELL_STATES.START;
+            grid[end.row][end.col] = CELL_STATES.END;
+            updateCell(start.row, start.col);
+            updateCell(end.row, end.col);
+            
+            updateStats(0, 0, 0);
+            updateStatus('就緒');
+        }
+        
+        // 更新單元格顯示
+        function updateCell(row, col) {
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            if (!cell) return;
+            
+            cell.className = 'cell';
+            
+            switch (grid[row][col]) {
+                case CELL_STATES.EMPTY:
+                    cell.classList.add('empty');
+                    break;
+                case CELL_STATES.OBSTACLE:
+                    cell.classList.add('obstacle');
+                    break;
+                case CELL_STATES.START:
+                    cell.classList.add('start');
+                    break;
+                case CELL_STATES.END:
+                    cell.classList.add('end');
+                    break;
+                case CELL_STATES.OPEN:
+                    cell.classList.add('open');
+                    break;
+                case CELL_STATES.CLOSED:
+                    cell.classList.add('closed');
+                    break;
+                case CELL_STATES.PATH:
+                    cell.classList.add('path');
+                    break;
+            }
+        }
+        
+        // 處理滑鼠按下
+        function handleMouseDown(e) {
+            if (isRunning) return;
+            
+            const row = parseInt(e.target.dataset.row);
+            const col = parseInt(e.target.dataset.col);
+            
+            // 設定起點或終點
+            if (settingStart) {
+                if (grid[row][col] !== CELL_STATES.OBSTACLE) {
+                    // 清除原起點
+                    grid[start.row][start.col] = CELL_STATES.EMPTY;
+                    updateCell(start.row, start.col);
+                    
+                    // 設定新起點
+                    start = { row, col };
+                    grid[row][col] = CELL_STATES.START;
+                    updateCell(row, col);
+                    
+                    settingStart = false;
+                    setStartBtn.textContent = '設定起點';
+                    updateStatus('就緒');
+                }
+                return;
+            }
+            
+            if (settingEnd) {
+                if (grid[row][col] !== CELL_STATES.OBSTACLE) {
+                    // 清除原終點
+                    grid[end.row][end.col] = CELL_STATES.EMPTY;
+                    updateCell(end.row, end.col);
+                    
+                    // 設定新終點
+                    end = { row, col };
+                    grid[row][col] = CELL_STATES.END;
+                    updateCell(row, col);
+                    
+                    settingEnd = false;
+                    setEndBtn.textContent = '設定終點';
+                    updateStatus('就緒');
+                }
+                return;
+            }
+            
+            // 創建/移除障礙物
+            if (grid[row][col] !== CELL_STATES.START && grid[row][col] !== CELL_STATES.END) {
+                isMouseDown = true;
+                
+                if (grid[row][col] === CELL_STATES.OBSTACLE) {
+                    grid[row][col] = CELL_STATES.EMPTY;
+                    drawingMode = 'erase';
+                } else {
+                    grid[row][col] = CELL_STATES.OBSTACLE;
+                    drawingMode = 'obstacle';
+                }
+                
+                updateCell(row, col);
+            }
+        }
+        
+        // 處理滑鼠移入
+        function handleMouseEnter(e) {
+            if (!isMouseDown || isRunning) return;
+            
+            const row = parseInt(e.target.dataset.row);
+            const col = parseInt(e.target.dataset.col);
+            
+            // 只在起點和終點之外的區域繪製
+            if (grid[row][col] !== CELL_STATES.START && grid[row][col] !== CELL_STATES.END) {
+                if (drawingMode === 'obstacle' && grid[row][col] !== CELL_STATES.OBSTACLE) {
+                    grid[row][col] = CELL_STATES.OBSTACLE;
+                    updateCell(row, col);
+                } else if (drawingMode === 'erase' && grid[row][col] === CELL_STATES.OBSTACLE) {
+                    grid[row][col] = CELL_STATES.EMPTY;
+                    updateCell(row, col);
+                }
+            }
+        }
+        
+        // 處理滑鼠放開
+        function handleMouseUp() {
+            isMouseDown = false;
+            drawingMode = null;
+        }
+        
+        // 清除路徑
+        function clearPath() {
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    if (grid[row][col] === CELL_STATES.OPEN || 
+                        grid[row][col] === CELL_STATES.CLOSED || 
+                        grid[row][col] === CELL_STATES.PATH) {
+                        
+                        if (row === start.row && col === start.col) {
+                            grid[row][col] = CELL_STATES.START;
+                        } else if (row === end.row && col === end.col) {
+                            grid[row][col] = CELL_STATES.END;
+                        } else {
+                            grid[row][col] = CELL_STATES.EMPTY;
+                        }
+                        
+                        updateCell(row, col);
+                    }
+                }
+            }
+            
+            updateStats(0, 0, 0);
+            updateStatus('就緒');
+        }
+        
+        // 重置網格
+        function resetGrid() {
+            start = { ...DEFAULT_START };
+            end = { ...DEFAULT_END };
+            initializeGrid();
+        }
+        
+        // 更新統計資訊
+        function updateStats(visitedNodes, pathLength, executionTime) {
+            visitedNodesEl.textContent = visitedNodes;
+            pathLengthEl.textContent = pathLength;
+            executionTimeEl.textContent = executionTime;
+        }
+        
+        // 更新狀態
+        function updateStatus(status) {
+            statusEl.textContent = status;
+        }
+        
+        // 設定按鈕事件
+        setStartBtn.addEventListener('click', () => {
+            settingStart = true;
+            setStartBtn.textContent = '點擊網格設定起點';
+            updateStatus('設定起點中...');
+        });
+        
+        setEndBtn.addEventListener('click', () => {
+            settingEnd = true;
+            setEndBtn.textContent = '點擊網格設定終點';
+            updateStatus('設定終點中...');
+        });
+        
+        clearPathBtn.addEventListener('click', clearPath);
+        
+        resetBtn.addEventListener('click', resetGrid);
+        
+        startBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            
+            // 清除現有路徑
+            clearPath();
+            
+            // 禁用按鈕
+            isRunning = true;
+            setStartBtn.disabled = true;
+            setEndBtn.disabled = true;
+            clearPathBtn.disabled = true;
+            resetBtn.disabled = true;
+            startBtn.disabled = true;
+            algorithmSelect.disabled = true;
+            
+            updateStatus('搜尋中...');
+            
+            const algorithm = algorithmSelect.value;
+            let visitedNodes = 0;
+            let path = [];
+            const startTime = performance.now();
+            
+            if (algorithm === 'astar') {
+                path = await findPathAStar();
+            } else if (algorithm === 'dijkstra') {
+                path = await findPathDijkstra();
+            }
+            
+            const endTime = performance.now();
+            const executionTime = Math.round(endTime - startTime);
+            
+            // 更新統計
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS; col++) {
+                    if (grid[row][col] === CELL_STATES.OPEN || grid[row][col] === CELL_STATES.CLOSED) {
+                        visitedNodes++;
+                    }
+                }
+            }
+            
+            if (path.length > 0) {
+                // 顯示最終路徑
+                for (const node of path) {
+                    if (grid[node.row][node.col] !== CELL_STATES.START && 
+                        grid[node.row][node.col] !== CELL_STATES.END) {
+                        grid[node.row][node.col] = CELL_STATES.PATH;
+                        updateCell(node.row, node.col);
+                    }
+                }
+                
+                updateStats(visitedNodes, path.length, executionTime);
+                updateStatus('找到路徑');
+            } else {
+                updateStats(visitedNodes, 0, executionTime);
+                updateStatus('無法找到路徑');
+            }
+            
+            // 重新啟用按鈕
+            isRunning = false;
+            setStartBtn.disabled = false;
+            setEndBtn.disabled = false;
+            clearPathBtn.disabled = false;
+            resetBtn.disabled = false;
+            startBtn.disabled = false;
+            algorithmSelect.disabled = false;
+        });
+        
+        // A* 演算法
+        async function findPathAStar() {
+            const openSet = [];
+            const closedSet = [];
+            const path = [];
+            
+            // 初始化節點
+            const nodes = [];
+            for (let row = 0; row < ROWS; row++) {
+                nodes[row] = [];
+                for (let col = 0; col < COLS; col++) {
+                    nodes[row][col] = {
+                        row,
+                        col,
+                        f: 0,
+                        g: 0,
+                        h: 0,
+                        parent: null,
+                        state: grid[row][col]
+                    };
+                }
+            }
+            
+            // 起點和終點
+            const startNode = nodes[start.row][start.col];
+            const endNode = nodes[end.row][end.col];
+            
+            openSet.push(startNode);
+            
+            while (openSet.length > 0) {
+                // 找到 f 值最小的節點
+                let lowestIndex = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < openSet[lowestIndex].f) {
+                        lowestIndex = i;
+                    }
+                }
+                
+                const current = openSet[lowestIndex];
+                
+                // 檢查是否到達終點
+                if (current.row === endNode.row && current.col === endNode.col) {
+                    let temp = current;
+                    while (temp) {
+                        if (temp !== startNode && temp !== endNode) {
+                            path.unshift(temp);
+                        }
+                        temp = temp.parent;
+                    }
+                    return path;
+                }
+                
+                // 從開放列表移除當前節點，加入封閉列表
+                openSet.splice(lowestIndex, 1);
+                closedSet.push(current);
+                
+                // 更新視覺化
+                if (current !== startNode && current !== endNode) {
+                    grid[current.row][current.col] = CELL_STATES.CLOSED;
+                    updateCell(current.row, current.col);
+                }
+                
+                // 檢查鄰居
+                const neighbors = getNeighbors(current, nodes);
+                
+                for (const neighbor of neighbors) {
+                    // 如果鄰居已在封閉列表或為障礙物，跳過
+                    if (closedSet.some(node => node.row === neighbor.row && node.col === neighbor.col) ||
+                        neighbor.state === CELL_STATES.OBSTACLE) {
+                        continue;
+                    }
+                    
+                    // 計算新的 g 值
+                    const tentativeG = current.g + 1;
+                    
+                    // 檢查是否在開放列表中
+                    const openNeighbor = openSet.find(node => node.row === neighbor.row && node.col === neighbor.col);
+                    
+                    if (!openNeighbor) {
+                        neighbor.g = tentativeG;
+                        neighbor.h = manhattanDistance(neighbor, endNode);
+                        neighbor.f = neighbor.g + neighbor.h;
+                        neighbor.parent = current;
+                        openSet.push(neighbor);
+                        
+                        // 更新視覺化
+                        if (neighbor !== endNode) {
+                            grid[neighbor.row][neighbor.col] = CELL_STATES.OPEN;
+                            updateCell(neighbor.row, neighbor.col);
+                        }
+                    } else if (tentativeG < openNeighbor.g) {
+                        openNeighbor.g = tentativeG;
+                        openNeighbor.f = openNeighbor.g + openNeighbor.h;
+                        openNeighbor.parent = current;
+                    }
+                }
+                
+                // 延遲以實現動畫效果
+                await sleep(10);
+            }
+            
+            return []; // 無路徑
+        }
+        
+        // Dijkstra 演算法
+        async function findPathDijkstra() {
+            const openSet = [];
+            const closedSet = [];
+            const path = [];
+            
+            // 初始化節點
+            const nodes = [];
+            for (let row = 0; row < ROWS; row++) {
+                nodes[row] = [];
+                for (let col = 0; col < COLS; col++) {
+                    nodes[row][col] = {
+                        row,
+                        col,
+                        g: Infinity, // 起點到該點的距離
+                        parent: null,
+                        state: grid[row][col]
+                    };
+                }
+            }
+            
+            // 起點和終點
+            const startNode = nodes[start.row][start.col];
+            const endNode = nodes[end.row][end.col];
+            
+            startNode.g = 0;
+            openSet.push(startNode);
+            
+            while (openSet.length > 0) {
+                // 找到 g 值最小的節點
+                let lowestIndex = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].g < openSet[lowestIndex].g) {
+                        lowestIndex = i;
+                    }
+                }
+                
+                const current = openSet[lowestIndex];
+                
+                // 檢查是否到達終點
+                if (current.row === endNode.row && current.col === endNode.col) {
+                    let temp = current;
+                    while (temp) {
+                        if (temp !== startNode && temp !== endNode) {
+                            path.unshift(temp);
+                        }
+                        temp = temp.parent;
+                    }
+                    return path;
+                }
+                
+                // 從開放列表移除當前節點，加入封閉列表
+                openSet.splice(lowestIndex, 1);
+                closedSet.push(current);
+                
+                // 更新視覺化
+                if (current !== startNode && current !== endNode) {
+                    grid[current.row][current.col] = CELL_STATES.CLOSED;
+                    updateCell(current.row, current.col);
+                }
+                
+                // 檢查鄰居
+                const neighbors = getNeighbors(current, nodes);
+                
+                for (const neighbor of neighbors) {
+                    // 如果鄰居已在封閉列表或為障礙物，跳過
+                    if (closedSet.some(node => node.row === neighbor.row && node.col === neighbor.col) ||
+                        neighbor.state === CELL_STATES.OBSTACLE) {
+                        continue;
+                    }
+                    
+                    // 計算新的 g 值
+                    const tentativeG = current.g + 1;
+                    
+                    // 檢查是否在開放列表中
+                    const openNeighbor = openSet.find(node => node.row === neighbor.row && node.col === neighbor.col);
+                    
+                    if (openNeighbor) {
+                        if (tentativeG < openNeighbor.g) {
+                            openNeighbor.g = tentativeG;
+                            openNeighbor.parent = current;
+                        }
+                    } else {
+                        neighbor.g = tentativeG;
+                        neighbor.parent = current;
+                        openSet.push(neighbor);
+                        
+                        // 更新視覺化
+                        if (neighbor !== endNode) {
+                            grid[neighbor.row][neighbor.col] = CELL_STATES.OPEN;
+                            updateCell(neighbor.row, neighbor.col);
+                        }
+                    }
+                }
+                
+                // 延遲以實現動畫效果
+                await sleep(10);
+            }
+            
+            return []; // 無路徑
+        }
+        
+        // 獲取鄰居節點
+        function getNeighbors(node, nodes) {
+            const neighbors = [];
+            
+            // 上
+            if (node.row > 0) neighbors.push(nodes[node.row - 1][node.col]);
+            // 下
+            if (node.row < ROWS - 1) neighbors.push(nodes[node.row + 1][node.col]);
+            // 左
+            if (node.col > 0) neighbors.push(nodes[node.row][node.col - 1]);
+            // 右
+            if (node.col < COLS - 1) neighbors.push(nodes[node.row][node.col + 1]);
+            
+            return neighbors;
+        }
+        
+        // 曼哈頓距離
+        function manhattanDistance(nodeA, nodeB) {
+            return Math.abs(nodeA.row - nodeB.row) + Math.abs(nodeA.col - nodeB.col);
+        }
+        
+        // 延遲函數
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // 初始化
+        initializeGrid();
+    </script>
+</body>
+</html>

@@ -15,21 +15,19 @@
 
 ### cerebras
 
+- gpt-oss-120b: 
+
 ### cline
 
-- code-supernova: 
 - grok-code-fast: 
 
 ### gemini
 
-### groq
-
-### mistral
-
 ### ollama
 
-### openrouter
+- deepseek-v31:
+- gpt-oss-120b: 
 
-### CLI 高到低
+## CLI 高到低
 
-### Cline 高到低
+## Cline 高到低

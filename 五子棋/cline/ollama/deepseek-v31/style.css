@@ -1,0 +1,193 @@
+/* 全局樣式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft JhengHei', Arial, sans-serif;
+    background-color: #F5E6D3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.game-container {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #8B4513;
+    margin-bottom: 20px;
+    font-size: 2.5em;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+#turn-indicator {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #8B4513;
+}
+
+#restart-btn {
+    background-color: #4A90E2;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#restart-btn:hover {
+    background-color: #357ABD;
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.board {
+    position: relative;
+    background-color: #DEB887;
+    border: 2px solid #8B4513;
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    width: 600px;
+    height: 600px;
+}
+
+/* 棋盤線條 */
+.board::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(to right, #8B4513 2px, transparent 2px),
+        linear-gradient(to bottom, #8B4513 2px, transparent 2px);
+    background-size: calc(100% / 15) calc(100% / 15);
+    pointer-events: none;
+}
+
+/* 交叉點 */
+.intersection {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 星位標記 */
+.intersection.star::before {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: #8B4513;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+/* 棋子 */
+.piece {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.piece.black {
+    background: radial-gradient(circle at 30% 30%, #666666, #000000);
+    border: 1px solid #333;
+}
+
+.piece.white {
+    background: radial-gradient(circle at 30% 30%, #FFFFFF, #CCCCCC);
+    border: 1px solid #999;
+}
+
+.message {
+    margin-top: 20px;
+    padding: 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+    min-height: 40px;
+    color: #8B4513;
+}
+
+.message.win {
+    color: #D32F2F;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .board {
+        width: 400px;
+        height: 400px;
+    }
+
+    .piece {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .board {
+        width: 300px;
+        height: 300px;
+    }
+
+    .piece {
+        width: 18px;
+        height: 18px;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    .game-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
