@@ -11,15 +11,17 @@ search: 搜尋文字...
 - 執行終端機命令
 - 新增和修改全域規則（系統提示詞）
 
-附加功能：
 若有內建就用內建的，包含可手動開啟的功能，但關閉以下項目：
 1. 看不到思考過程的思考
 2. 瀏覽器（電腦）控制
 
-補充功能：
-- 瀏覽器控制 (Playwright Mcp): Cline
-- Context7: Cline, Cursor
-- [gemini-vision](https://github.com/Artin0123/gemini-vision-mcp): Cline, Cursor
+必備功能：
+- [memory-mcp](https://github.com/Artin0123/memory-mcp)
+- Context7
 
-## 全域規則（可選）
+補充功能：
+- 瀏覽器控制 (Playwright Mcp): Cline, Kilo Code
+- [gemini-vision](https://github.com/Artin0123/gemini-vision-mcp): Cline, Kilo Code, Cursor
+
+## 全域規則
 [instructions.md](https://raw.githubusercontent.com/Artin0123/memory-mcp/refs/heads/main/instructions.md)
